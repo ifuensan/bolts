@@ -2,114 +2,120 @@
 
 ## Overview
 
-This protocol assumes an underlying authenticated and ordered transport mechanism that takes care of framing individual messages.
-[BOLT #8](08-transport.md) specifies the canonical transport layer used in Lightning, though it can be replaced by any transport that fulfills the above guarantees.
+Este protocolo asume un mecanismo subyacente de transporte autenticado y ordenado que se encarga de enmarcar mensajes individuales. 
+[BOLT #8](08-transport.md) especifica la capa de transporte canónico utilizada en Lightning, aunque puede ser reemplazado por cualquier transporte que cumpla con las garantías anteriores.
 
-The default TCP port depends on the network used. The most common networks are:
+El puerto TCP predeterminado depende de la red utilizada. Las redes más comunes son:
 
-- Bitcoin mainet with port number 9735 or the corresponding hexadecimal `0x2607`;
-- Bitcoin testnet with port number 19735 (`0x4D17`);
-- Bitcoin signet with port number 39735 (`0xF87`).
+* Bitcoin mainet con número de puerto 9735 o el correspondiente
+* Bitcoin testnet con el número de puerto 19735 (`0x4D17`)
+* Bitcoin signet con el número de puerto 39735 (`0xF87`).
 
 The Unicode code point for LIGHTNING <sup>[1](#reference-1)</sup>, and the port convention try to follow the Bitcoin Core convention.
 
-All data fields are unsigned big-endian unless otherwise specified.
+Todos los campos de datos son big-endian sin signo a menos que se especifique lo contrario.
 
-## Table of Contents
+## Índice
 
-  * [Connection Handling and Multiplexing](#connection-handling-and-multiplexing)
-  * [Lightning Message Format](#lightning-message-format)
-  * [Type-Length-Value Format](#type-length-value-format)
-  * [Fundamental Types](#fundamental-types)
-  * [Setup Messages](#setup-messages)
-    * [The `init` Message](#the-init-message)
-    * [The `error` and `warning` Messages](#the-error-and-warning-messages)
-  * [Control Messages](#control-messages)
-    * [The `ping` and `pong` Messages](#the-ping-and-pong-messages)
-  * [Appendix A: BigSize Test Vectors](#appendix-a-bigsize-test-vectors)
-  * [Appendix B: Type-Length-Value Test Vectors](#appendix-b-type-length-value-test-vectors)
-  * [Appendix C: Message Extension](#appendix-c-message-extension)
-  * [Acknowledgments](#acknowledgments)
-  * [References](#references)
-  * [Authors](#authors)
+- [BOLT #1: Base Protocol](#bolt-1-base-protocol)
+  - [Overview](#overview)
+  - [Índice](#índice)
+  - [Manejo y multiplexado de conexiones](#manejo-y-multiplexado-de-conexiones)
+  - [Formato del Mensaje Lightning](#formato-del-mensaje-lightning)
+    - [Base Lógica](#base-lógica)
+  - [Formato Tipo-Longitud-Valor](#formato-tipo-longitud-valor)
+    - [Requirements](#requirements)
+    - [Rationale](#rationale)
+  - [Tipos Fundamentales](#tipos-fundamentales)
+  - [Mensajes de configuración](#mensajes-de-configuración)
+    - [The `init` Message](#the-init-message)
+      - [Requirements](#requirements-1)
+      - [Rationale](#rationale-1)
+    - [The `error` and `warning` Messages](#the-error-and-warning-messages)
+      - [Requirements](#requirements-2)
+      - [Rationale](#rationale-2)
+  - [Mensajes de control](#mensajes-de-control)
+    - [Los mensajes `ping` y `pong`](#los-mensajes-ping-y-pong)
+      - [Requirements](#requirements-3)
+    - [Rationale](#rationale-3)
+  - [Appendix A: BigSize Test Vectors](#appendix-a-bigsize-test-vectors)
+    - [BigSize Decoding Tests](#bigsize-decoding-tests)
+    - [BigSize Encoding Tests](#bigsize-encoding-tests)
+  - [Appendix B: Type-Length-Value Test Vectors](#appendix-b-type-length-value-test-vectors)
+    - [TLV Decoding Failures](#tlv-decoding-failures)
+    - [TLV Decoding Successes](#tlv-decoding-successes)
+    - [TLV Stream Decoding Failure](#tlv-stream-decoding-failure)
+  - [Appendix C: Message Extension](#appendix-c-message-extension)
+  - [Acknowledgments](#acknowledgments)
+  - [References](#references)
+  - [Authors](#authors)
 
-## Connection Handling and Multiplexing
+## Manejo y multiplexado de conexiones
 
-Implementations MUST use a single connection per peer; channel messages (which include a channel ID) are multiplexed over this single connection.
+Las implementaciones DEBEN usar una sola conexión por par; los mensajes de canal (que incluyen un ID de canal) se multiplexan a través de esta única conexión.
 
-## Lightning Message Format
+## Formato del Mensaje Lightning
+Después del descifrado, todos los mensajes Lightning tienen el formato:
 
-After decryption, all Lightning messages are of the form:
-
-1. `type`: a 2-byte big-endian field indicating the type of message
-2. `payload`: a variable-length payload that comprises the remainder of
-   the message and that conforms to a format matching the `type`
+1. `type`: campo big-endian 2-byte que hace referencia la tipo de mensaje
+2. `payload`: una carga útil ("payload") de longitud variable que comprende el resto del mensaje y que se ajusta a un formato que coincide con el `tipo`
 3. `extension`: an optional [TLV stream](#type-length-value-format)
 
-The `type` field indicates how to interpret the `payload` field.
-The format for each individual type is defined by a specification in this repository.
-The type follows the _it's ok to be odd_ rule, so nodes MAY send _odd_-numbered types without ascertaining that the recipient understands it.
+El campo `type` indica como intérpretar el campo `payload``
+El formato para cada tipo individual está definido por una especificación en este repositorio.
+El tipo sigue la regla _está bien ser impar_, por lo que los nodos PUEDEN enviar tipos _impares_ sin asegurarse de que el destinatario los entienda.
 
-The messages are grouped logically into five groups, ordered by the most significant bit that is set:
+Los mensajes se agrupan de forma lógica en cinco grupos, ordenados por el bit más significativo que se establece:
 
-  - Setup & Control (types `0`-`31`): messages related to connection setup, control, supported features, and error reporting (described below)
-  - Channel (types `32`-`127`): messages used to setup and tear down micropayment channels (described in [BOLT #2](02-peer-protocol.md))
-  - Commitment (types `128`-`255`): messages related to updating the current commitment transaction, which includes adding, revoking, and settling HTLCs as well as updating fees and exchanging signatures (described in [BOLT #2](02-peer-protocol.md))
-  - Routing (types `256`-`511`): messages containing node and channel announcements, as well as any active route exploration (described in [BOLT #7](07-routing-gossip.md))
-  - Custom (types `32768`-`65535`): experimental and application-specific messages
+  - Configuración & Control (tipos `0`-`31`): mensajes relacionados con la configuración de la conexión, el control, las funciones admitidas y los informes de errores (descritos a continuación)
+  - Canal (tipos `32`-`127`): mensajes utilizados para configurar y echar abajo canales de micropagos (descrito en [BOLT #2](02-peer-protocol.md))
+  - Compromiso (tipos `128`-`255`): mensajes relacionados con la actualización de la transacción de compromiso actual, que incluye agregar, revocar y liquidar HTLC, así como actualizar tarifas e intercambiar firmas (descrito en [BOLT #2](02-peer-protocol.md))
+  - Enrutamiento (types `256`-`511`): mensajes que contienen anuncios de nodos y canales, así como cualquier exploración de ruta activa (descrito en [BOLT #7](07-routing-gossip.md))
+  - Personalización (tipos `32768`-`65535`): mensajes experimentales y específicos de la aplicación
 
-The size of the message is required by the transport layer to fit into a 2-byte unsigned int; therefore, the maximum possible size is 65535 bytes.
+La capa de transporte requiere que el tamaño del mensaje se ajuste a un int (entero) sin firmar de 2 bytes; por lo tanto, el tamaño máximo posible es 65535 bytes.
 
-A sending node:
-  - MUST NOT send an evenly-typed message not listed here without prior negotiation.
-  - MUST NOT send evenly-typed TLV records in the `extension` without prior negotiation.
-  - that negotiates an option in this specification:
-    - MUST include all the fields annotated with that option.
-  - When defining custom messages:
-    - SHOULD pick a random `type` to avoid collision with other custom types.
-    - SHOULD pick a `type` that doesn't conflict with other experiments listed in [this issue](https://github.com/lightningnetwork/lightning-rfc/issues/716).
-    - SHOULD pick an odd `type` identifiers when regular nodes should ignore the
-      additional data.
-    - SHOULD pick an even `type` identifiers when regular nodes should reject
-      the message and close the connection.
+Un nodo emisor:
 
-A receiving node:
-  - upon receiving a message of _odd_, unknown type:
-    - MUST ignore the received message.
-  - upon receiving a message of _even_, unknown type:
-    - MUST close the connection.
-    - MAY fail the channels.
-  - upon receiving a known message with insufficient length for the contents:
-    - MUST close the connection.
-    - MAY fail the channels.
-  - upon receiving a message with an `extension`:
-    - MAY ignore the `extension`.
-    - Otherwise, if the `extension` is invalid:
-      - MUST close the connection.
-      - MAY fail the channels.
+  - NO DEBE enviar un mensaje tipificado como par que no se encuentre aquí, sin negociación previa.
+  - NO DEBE enviar registros TLV tipificados pares en la "extensión" sin negociación previa.
+  - que negocia una opción en esta espeficicación
+    - DEBE incluir todos los campos anotados con esa opción.
+  - Al definir mensajes personalizados:
+    - DEBERÍA elegir un `tipo` aleatorio para evitar la colisión con otros tipos personalizados.
+    - DEBERÍA elegir un `tipo` que no entre en conflicto con otros experimentos enumerados en [esta `issue`](https://github.com/lightningnetwork/lightning-rfc/issues/716).
+    - DEBERÍA elegir identificadores de `tipo` impar cuando los nodos regulares debieran ignorar los datos adicionales.
+    - DEBERÍA elegir identificadores de 'tipo' par cuando los nodos regulares debieran rechazar el mensaje y cerrar la conexión.
 
-### Rationale
+Un nodo receptor:
 
-By default `SHA2` and Bitcoin public keys are both encoded as
-big endian, thus it would be unusual to use a different endian for
-other fields.
+  - al recibir un mensaje _impar_, tipo desconocido:
+    - DEBE ignorar el mensaje recibido.
+  - al recibir un mensaje _par_, tipo desconocido:
+    - DEBE cerrar la conexión.
+    - PUEDEN fallar los canales.
+  - al recibir un mensaje conocido con longitud insuficiente para el contenido:
+    - DEBE cerrar la conexión.
+    - PUEDEN fallar los canales.
+  - al recibir un mensaje con una `extensión`:
+    - PUEDE ignorar la `extensión`.
+    - De lo contrario, si la `extensión` no es válida:
+      - DEBE cerrar la conexión.
+      - PUEDEN fallar los canales.
 
-Length is limited to 65535 bytes by the cryptographic wrapping, and
-messages in the protocol are never more than that length anyway.
+### Base Lógica
 
-The _it's ok to be odd_ rule allows for future optional extensions
-without negotiation or special coding in clients. The _extension_ field
-similarly allows for future expansion by letting senders include additional
-TLV data. Note that an _extension_ field can only be added when the message
-`payload` doesn't already fill the 65535 bytes maximum length.
+Por defecto, las claves públicas de `SHA2` y Bitcoin están codificadas como big endian, por lo que sería inusual usar un endian diferente para otros campos.
 
-Implementations may prefer to have message data aligned on an 8-byte
-boundary (the largest natural alignment requirement of any type here);
-however, adding a 6-byte padding after the type field was considered
-wasteful: alignment may be achieved by decrypting the message into
-a buffer with 6-bytes of pre-padding.
+La longitud está limitada a 65535 bytes por la envoltura criptográfica, y los mensajes en el protocolo nunca superan esa longitud de todos modos.
 
-## Type-Length-Value Format
+La regla _está bien ser impar_ permite futuras extensiones opcionales sin negociación o codificación especial en los clientes. De manera similar, el campo _extensión_ permite una expansión futura al permitir que los remitentes incluyan datos TLV adicionales. Tenga en cuenta que un campo de _extensión_ solo se puede agregar cuando el mensaje `carga útil` aún no llena la longitud máxima de 65535 bytes.
+
+//Implementations may prefer to have message data aligned on an 8-byte boundary (the largest natural alignment requirement of any type here); however, adding a 6-byte padding after the type field was considered wasteful: alignment may be achieved by decrypting the message into a buffer with 6-bytes of pre-padding.
+
+Las implementaciones pueden preferir tener datos de mensajes alineados en un límite de 8 bytes (el requisito de alineación natural más grande de cualquier tipo aquí); sin embargo, agregar un relleno de 6 bytes después del campo de tipo se consideró un desperdicio: la alineación se puede lograr descifrando el mensaje en un búfer con 6 bytes de relleno previo.
+
+## Formato Tipo-Longitud-Valor
 
 Throughout the protocol, a TLV (Type-Length-Value) format is used to allow for
 the backwards-compatible addition of new fields to existing message types.
@@ -215,7 +221,7 @@ follow. On the other hand, if a `tlv_record` contains multiple, variable-length
 elements then this would not be considered redundant, and is needed to allow the
 receiver to parse individual elements from `value`.
 
-## Fundamental Types
+## Tipos Fundamentales
 
 Various fundamental types are referred to in the message specifications:
 
@@ -247,7 +253,7 @@ The following convenience types are also defined:
 * `short_channel_id`: an 8 byte value identifying a channel (see [BOLT #7](07-routing-gossip.md#definition-of-short-channel-id))
 * `bigsize`: a variable-length, unsigned integer similar to Bitcoin's CompactSize encoding, but big-endian.  Described in [BigSize](#appendix-a-bigsize-test-vectors).
 
-## Setup Messages
+## Mensajes de configuración
 
 ### The `init` Message
 
@@ -394,9 +400,9 @@ retry or recovery for spurious errors.
 It may be wise not to distinguish errors in production settings, lest
 it leak information — hence, the optional `data` field.
 
-## Control Messages
+## Mensajes de control
 
-### The `ping` and `pong` Messages
+### Los mensajes `ping` y `pong`
 
 In order to allow for the existence of long-lived TCP connections, at
 times it may be required that both ends keep alive the TCP connection at the
