@@ -1,5 +1,7 @@
+<!-- omit in toc -->
 # BOLT #1: Base Protocol
 
+<!-- omit in toc -->
 ## Overview
 
 Este protocolo asume un mecanismo subyacente de transporte autenticado y ordenado que se encarga de enmarcar mensajes individuales. 
@@ -11,47 +13,29 @@ El puerto TCP predeterminado depende de la red utilizada. Las redes más comunes
 * Bitcoin testnet con el número de puerto 19735 (`0x4D17`)
 * Bitcoin signet con el número de puerto 39735 (`0xF87`).
 
-The Unicode code point for LIGHTNING <sup>[1](#reference-1)</sup>, and the port convention try to follow the Bitcoin Core convention.
+El punto Unicode para LIGHTNING <sup>[1](#reference-1)</sup>, y el puerto convenido trantan de seguir la convención de Bitcoin Core.
 
 Todos los campos de datos son big-endian sin signo a menos que se especifique lo contrario.
-
+<!-- omit in toc -->
 ## Índice
+- [Manejo y multiplexado de conexiones](#manejo-y-multiplexado-de-conexiones)
+- [Formato del Mensaje Lightning](#formato-del-mensaje-lightning)
+- [Formato Tipo-Longitud-Valor](#formato-tipo-longitud-valor)
+- [Tipos Fundamentales](#tipos-fundamentales)
+- [Mensajes de configuración](#mensajes-de-configuración)
+  - [The `init` Message](#the-init-message)
+  - [The `error` and `warning` Messages](#the-error-and-warning-messages)
+- [Mensajes de control](#mensajes-de-control)
+  - [Los mensajes `ping` y `pong`](#los-mensajes-ping-y-pong)
+- [Appendix A: BigSize Test Vectors](#appendix-a-bigsize-test-vectors)
+- [Appendix B: Type-Length-Value Test Vectors](#appendix-b-type-length-value-test-vectors)
+- [Appendix C: Message Extension](#appendix-c-message-extension)
+- [Acknowledgments](#acknowledgments)
+- [References](#references)
+- [Authors](#authors)
 
-- [BOLT #1: Base Protocol](#bolt-1-base-protocol)
-  - [Overview](#overview)
-  - [Índice](#índice)
-  - [Manejo y multiplexado de conexiones](#manejo-y-multiplexado-de-conexiones)
-  - [Formato del Mensaje Lightning](#formato-del-mensaje-lightning)
-    - [Base Lógica](#base-lógica)
-  - [Formato Tipo-Longitud-Valor](#formato-tipo-longitud-valor)
-    - [Requirements](#requirements)
-    - [Rationale](#rationale)
-  - [Tipos Fundamentales](#tipos-fundamentales)
-  - [Mensajes de configuración](#mensajes-de-configuración)
-    - [The `init` Message](#the-init-message)
-      - [Requirements](#requirements-1)
-      - [Rationale](#rationale-1)
-    - [The `error` and `warning` Messages](#the-error-and-warning-messages)
-      - [Requirements](#requirements-2)
-      - [Rationale](#rationale-2)
-  - [Mensajes de control](#mensajes-de-control)
-    - [Los mensajes `ping` y `pong`](#los-mensajes-ping-y-pong)
-      - [Requirements](#requirements-3)
-    - [Rationale](#rationale-3)
-  - [Appendix A: BigSize Test Vectors](#appendix-a-bigsize-test-vectors)
-    - [BigSize Decoding Tests](#bigsize-decoding-tests)
-    - [BigSize Encoding Tests](#bigsize-encoding-tests)
-  - [Appendix B: Type-Length-Value Test Vectors](#appendix-b-type-length-value-test-vectors)
-    - [TLV Decoding Failures](#tlv-decoding-failures)
-    - [TLV Decoding Successes](#tlv-decoding-successes)
-    - [TLV Stream Decoding Failure](#tlv-stream-decoding-failure)
-  - [Appendix C: Message Extension](#appendix-c-message-extension)
-  - [Acknowledgments](#acknowledgments)
-  - [References](#references)
-  - [Authors](#authors)
 
 ## Manejo y multiplexado de conexiones
-
 Las implementaciones DEBEN usar una sola conexión por par; los mensajes de canal (que incluyen un ID de canal) se multiplexan a través de esta única conexión.
 
 ## Formato del Mensaje Lightning
@@ -103,6 +87,7 @@ Un nodo receptor:
       - DEBE cerrar la conexión.
       - PUEDEN fallar los canales.
 
+<!-- omit in toc -->
 ### Base Lógica
 
 Por defecto, las claves públicas de `SHA2` y Bitcoin están codificadas como big endian, por lo que sería inusual usar un endian diferente para otros campos.
@@ -144,6 +129,7 @@ The `length` is encoded using the BigSize format signaling the size of
 The `value` depends entirely on the `type`, and should be encoded or decoded
 according to the message-specific format determined by `type`.
 
+<!-- omit in toc -->
 ### Requirements
 
 The sending node:
@@ -181,69 +167,48 @@ The receiving node:
    - otherwise, if `type` is odd:
      - MUST discard the next `length` bytes.
 
+<!-- omit in toc -->
 ### Rationale
 
-The primary advantage in using TLV is that a reader is able to ignore new fields
-that it does not understand, since each field carries the exact size of the
-encoded element. Without TLV, even if a node does not wish to use a particular
-field, the node is forced to add parsing logic for that field in order to
-determine the offset of any fields that follow.
+La principal ventaja de usar TLV es que un lector puede ignorar nuevos campos que no comprende, ya que cada campo tiene el tamaño exacto del elemento codificado. Sin TLV, incluso si un nodo no desea usar un campo en particular, el nodo se ve obligado a agregar lógica de análisis para ese campo para determinar el desplazamiento de los campos que siguen.
 
-The strict monotonicity constraint ensures that all `type`s are unique and can
-appear at most once. Fields that map to complex objects, e.g. vectors, maps, or
-structs, should do so by defining the encoding such that the object is
-serialized within a single `tlv_record`. The uniqueness constraint, among other
-things, enables the following optimizations:
- - canonical ordering is defined independent of the encoded `value`s.
- - canonical ordering can be known at compile-time, rather than being determined
-   dynamically at the time of encoding.
- - verifying canonical ordering requires less state and is less-expensive.
- - variable-size fields can reserve their expected size up front, rather than
-   appending elements sequentially and incurring double-and-copy overhead.
+La estricta restricción de monotonía asegura que todos los `tipos` sean únicos y puedan aparecer como máximo una vez. Campos que se asignan a objetos complejos, p. los vectores, mapas o estructuras deben hacerlo definiendo la codificación de modo que el objeto se serialice dentro de un solo `tlv_record`. La restricción de unicidad, entre otras cosas, permite las siguientes optimizaciones:
 
-The use of a bigsize for `type` and `length` permits a space savings for small
-`type`s or short `value`s. This potentially leaves more space for application
-data over the wire or in an onion payload.
 
-All `type`s must appear in increasing order to create a canonical encoding of
-the underlying `tlv_record`s. This is crucial when computing signatures over a
-`tlv_stream`, as it ensures verifiers will be able to recompute the same message
-digest as the signer. Note that the canonical ordering over the set of fields
-can be enforced even if the verifier does not understand what the fields
-contain.
+ - el orden canónico se define independientemente de los `value`s codificados
+ - el orden canónico se puede conocer en tiempo de compilación, en lugar de determinarse dinámicamente en el momento de la codificación.
+ - verificar el ordenamiento canónico requiere menos estado y es menos costoso.
+ - los campos de tamaño variable pueden reservar por adelantado su tamaño esperado, en lugar de agregar elementos secuencialmente e incurrir en una sobrecarga de duplicación y copia.
 
-Writers should avoid using redundant, variable-length encodings in a
-`tlv_record` since this results in encoding the length twice and complicates
-computing the outer length. As an example, when writing a variable length byte
-array, the `value` should contain only the raw bytes and forgo an additional
-internal length since the `tlv_record` already carries the number of bytes that
-follow. On the other hand, if a `tlv_record` contains multiple, variable-length
-elements then this would not be considered redundant, and is needed to allow the
-receiver to parse individual elements from `value`.
+The use of a bigsize for `type` and `length` permits a space savings for small `type`s or short `value`s. This potentially leaves more space for application data over the wire or in an onion payload.
+
+El uso de un `bigsize` para `type` y `length` permite ahorrar espacio para `type`s pequeños o `value`s cortos. Potencialmente, esto deja más espacio para los datos de la aplicación a través del cable o en una carga útil de cebolla.
+
+Todos los `type`s deben aparecer en orden creciente para crear una codificación canónica de los `tlv_record`s subyacentes. Esto es crucial cuando se calculan las firmas sobre un `tlv_stream`, ya que garantiza que los verificadores puedan volver a calcular el mismo resumen del mensaje que el firmante. Tenga en cuenta que el orden canónico sobre el conjunto de campos se puede aplicar incluso si el verificador no comprende lo que contienen los campos.
+
+Los escritores (`Writers`) deben evitar el uso de codificaciones redundantes de longitud variable en un `tlv_record`, ya que esto da como resultado la codificación de la longitud dos veces y complica el cálculo de la longitud exterior. Como ejemplo, al escribir una matriz de bytes de longitud variable, el `value` debe contener solo los bytes sin procesar y renunciar a una longitud interna adicional, ya que `tlv_record` ya lleva la cantidad de bytes que siguen. Por otro lado, si un `tlv_record` contiene múltiples elementos de longitud variable, esto no se consideraría redundante y es necesario para permitir que el receptor analice elementos individuales de `value`.
 
 ## Tipos Fundamentales
 
-Various fundamental types are referred to in the message specifications:
+En las especificaciones del mensaje se hace referencia a varios tipos fundamentales:
 
-* `byte`: an 8-bit byte
-* `u16`: a 2 byte unsigned integer
-* `u32`: a 4 byte unsigned integer
-* `u64`: an 8 byte unsigned integer
+* `byte`: 1 byte 8-bit
+* `u16`: 2 bytes entero sin signo.
+* `u32`: 4 bytes entero sin signo.
+* `u64`: 8 bytes entero sin signo.
 
-Inside TLV records which contain a single value, leading zeros in
-integers can be omitted:
+Dentro de los registros TLV que contienen un solo valor, se pueden omitir los ceros iniciales en los números enteros:
 
-* `tu16`: a 0 to 2 byte unsigned integer
-* `tu32`: a 0 to 4 byte unsigned integer
-* `tu64`: a 0 to 8 byte unsigned integer
+* `tu16`: entre 0 y 2 bytes entero sin signo
+* `tu32`: entre 0 y 4 bytes entero sin signo
+* `tu64`: entre 0 y 8 bytes entero sin signo
 
-When used to encode amounts, the previous fields MUST comply with the upper
-bound of 21 million BTC:
+Cuando se usa para codificar montos, los campos anteriores DEBEN cumplir con el límite superior de 21 millones de BTC:
 
-* satoshi amounts MUST be at most `0x000775f05a074000`
-* milli-satoshi amounts MUST be at most `0x1d24b2dfac520000`
+* las cantidades de satoshis DEBEN ser como máximo `0x000775f05a074000`
+* las cantidades de mili-satoshi DEBEN ser como máximo `0x1d24b2dfac520000`
 
-The following convenience types are also defined:
+También se definen los siguientes tipos de conveniencia:
 
 * `chain_hash`: a 32-byte chain identifier (see [BOLT #0](00-introduction.md#glossary-and-terminology-guide))
 * `channel_id`: a 32-byte channel_id (see [BOLT #2](02-peer-protocol.md#definition-of-channel-id))
@@ -283,6 +248,7 @@ The `features` field MUST be padded to bytes with 0s.
 The optional `networks` indicates the chains the node is interested in.
 The optional `remote_addr` can be used to circumvent NAT issues.
 
+<!-- omit in toc -->
 #### Requirements
 
 The sending node:
@@ -313,6 +279,7 @@ The receiving node:
     - MUST close the connection.
   - MAY use the `remote_addr` to update its `node_announcement`
 
+<!-- omit in toc -->
 #### Rationale
 
 There used to be two feature bitfields here, but for backwards compatibility they're now
@@ -344,6 +311,7 @@ For simplicity of diagnosis, it's often useful to tell a peer that something is 
    * [`u16`:`len`]
    * [`len*byte`:`data`]
 
+<!-- omit in toc -->
 #### Requirements
 
 The channel is referred to by `channel_id`, unless `channel_id` is 0 (i.e. all bytes are 0), in which case it refers to all channels.
@@ -385,6 +353,7 @@ The receiving node:
   - if `data` is not composed solely of printable ASCII characters (For reference: the printable character set includes byte values 32 through 126, inclusive):
     - SHOULD NOT print out `data` verbatim.
 
+<!-- omit in toc -->
 #### Rationale
 
 There are unrecoverable errors that require an abort of conversations;
@@ -425,6 +394,7 @@ included within the data payload of the `pong` message.
     * [`u16`:`byteslen`]
     * [`byteslen*byte`:`ignored`]
 
+<!-- omit in toc -->
 #### Requirements
 
 A node sending a `ping` message:
@@ -450,6 +420,7 @@ A node receiving a `pong` message:
   - if `byteslen` does not correspond to any `ping`'s `num_pong_bytes` value it has sent:
     - MAY close the connection.
 
+<!-- omit in toc -->
 ### Rationale
 
 The largest possible message is 65535 bytes; thus, the maximum sensible `byteslen`
@@ -510,6 +481,7 @@ fewer bytes. For example, a BigSize encoding that occupies 5 bytes
 but whose value is less than 0x10000 is not minimally encoded. All values
 decoded with BigSize should be checked to ensure they are minimally encoded.
 
+<!-- omit in toc -->
 ### BigSize Decoding Tests
 
 The following is an example of how to execute the BigSize decoding tests.
@@ -640,6 +612,7 @@ A correct implementation should pass against these test vectors:
 ]
 ```
 
+<!-- omit in toc -->
 ### BigSize Encoding Tests
 
 The following is an example of how to execute the BigSize encoding tests.
@@ -742,6 +715,7 @@ The n2 namespace supports the following TLV types:
    2. data:
      * [`tu32`:`cltv_expiry`]
 
+<!-- omit in toc -->
 ### TLV Decoding Failures
 
 The following TLV streams in any namespace should trigger a decoding failure:
@@ -851,6 +825,7 @@ failure:
 1. Invalid stream: 0x00 00
 2. Reason: unknown even field for `n1`s namespace.
 
+<!-- omit in toc -->
 ### TLV Decoding Successes
 
 The following TLV streams in either namespace should correctly decode,
@@ -916,6 +891,7 @@ with the values given here:
 1. Valid stream: 0xfd00fe 02 0226
 2. Values: `tlv4` `cltv_delta`=550
 
+<!-- omit in toc -->
 ### TLV Stream Decoding Failure
 
 Any appending of an invalid stream to a valid stream should trigger

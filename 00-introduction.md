@@ -88,14 +88,11 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * A gossip message sent between *[peers](#peers)* intended to aid the discovery of a *[channel](#channel)* or a *[node](#node)*.
 
 * #### `chain_hash`:
-   * The uniquely identifying hash of the target blockchain (usually the genesis hash).
-     This allows *[nodes](#node)* to create and reference *channels* on
-     several blockchains. Nodes are to ignore any messages that reference a
-     `chain_hash` that are unknown to them. Unlike `bitcoin-cli`, the hash is
-     not reversed but is used directly.
+   * El hash de identificación único de la cadena de bloques de destino (generalmente el hash génesis).
+     Esto permite que *[nodos](#nodo)* creen y hagan referencia a *canales* en varias cadenas de bloques. Los nodos deben ignorar cualquier mensaje que haga referencia a un `chain_hash` que les sea desconocido. A diferencia de `bitcoin-cli`, el hash no se invierte sino que se usa directamente.
 
-     For the main chain Bitcoin blockchain, the `chain_hash` value MUST be
-     (encoded in hex):
+     Para la cadena principal de la cadena de bloques de Bitcoin, el valor `chain_hash` DEBE ser
+     (codificado en hexadecimal):
      `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000`.
 
 * #### *Channel*:

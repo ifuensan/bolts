@@ -1,59 +1,32 @@
+<!-- omit in toc -->
 # BOLT #2: Protocolo de pares para la gestión de canales
 
-El protocolo de canal de pares tiene tres fases: establecimiento, operación normal y cierre.
+El protocolo de pares del canal tiene tres fases: establecimiento, operación normal y cierre.
 
+<!-- omit in toc -->
 # Índice
 
-- [BOLT #2: Protocolo de pares para la gestión de canales](#bolt-2-protocolo-de-pares-para-la-gestión-de-canales)
-- [Índice](#índice)
 - [Canal](#canal)
   - [Definición de `channel_id`](#definición-de-channel_id)
   - [Establecimiento de canal](#establecimiento-de-canal)
     - [El mensaje `open_channel`](#el-mensaje-open_channel)
       - [Tipos de canales definidos](#tipos-de-canales-definidos)
-      - [Requisitos](#requisitos)
-      - [Base Lógica](#base-lógica)
     - [El mensaje `accept_channel`](#el-mensaje-accept_channel)
-      - [Requisitos](#requisitos-1)
     - [El mensaje `funding_created`](#el-mensaje-funding_created)
-      - [Requisitos](#requisitos-2)
-      - [Base Lógica](#base-lógica-1)
     - [El mensaje `funding_signed`](#el-mensaje-funding_signed)
-      - [Requisitos](#requisitos-3)
-      - [Base Lógica](#base-lógica-2)
     - [El mensaje `channel_ready`](#el-mensaje-channel_ready)
-      - [Requisitos](#requisitos-4)
-      - [Base lógica](#base-lógica-3)
   - [Cierre de canal](#cierre-de-canal)
     - [Closing Initiation: `shutdown`](#closing-initiation-shutdown)
-      - [Requisitos](#requisitos-5)
-      - [Base lógica](#base-lógica-4)
     - [Negociación de cierre: `closing_signed`](#negociación-de-cierre-closing_signed)
-      - [Requisitos](#requisitos-6)
-      - [Base lógica](#base-lógica-5)
   - [Operación normal](#operación-normal)
     - [Reenvío de HTLCs](#reenvío-de-htlcs)
-      - [Requisitos](#requisitos-7)
-      - [Base lógica](#base-lógica-6)
     - [Selección `cltv_expiry_delta`](#selección-cltv_expiry_delta)
-      - [Requisitos](#requisitos-8)
     - [Añadiendo un HTLC: `update_add_htlc`](#añadiendo-un-htlc-update_add_htlc)
-      - [Requisitos](#requisitos-9)
-      - [Base lógica](#base-lógica-7)
     - [Eliminando un HTLC: `update_fulfill_htlc`, `update_fail_htlc`, y `update_fail_malformed_htlc`](#eliminando-un-htlc-update_fulfill_htlc-update_fail_htlc-y-update_fail_malformed_htlc)
-      - [Requisitos](#requisitos-10)
-      - [Base lógica](#base-lógica-8)
     - [Confirmando actualizaciones hasta ahora: `commitment_signed`](#confirmando-actualizaciones-hasta-ahora-commitment_signed)
-      - [Requisitos](#requisitos-11)
-      - [Base lógica](#base-lógica-9)
     - [Completar la transición al estado actualizado: `revoke_and_ack`](#completar-la-transición-al-estado-actualizado-revoke_and_ack)
-      - [Requisitos](#requisitos-12)
     - [Actualizando Fees: `update_fee`](#actualizando-fees-update_fee)
-      - [Requisitos](#requisitos-13)
-      - [Base lógica](#base-lógica-10)
   - [Retransmisión de mensaje](#retransmisión-de-mensaje)
-    - [Requisitos](#requisitos-14)
-    - [Base lógica](#base-lógica-11)
 - [Authors](#authors)
 
 # Canal
@@ -180,7 +153,7 @@ Cada tipo básico tiene las siguientes variaciones permitidas:
   - `option_scid_alias` (bit 46)
   - `option_zeroconf` (bit 50)
 
-#### Requisitos
+
 
 El nodo emisor:
   - DEBE asegurar que el valor `chain_hash` identifique la cadena en la que desea abrir el canal.
@@ -252,6 +225,7 @@ no son claves públicas secp256k1 válidas en formato comprimido.
 El nodo receptor NO DEBE:
   - considerar los fondos recibidos, utilizando `push_msat`, como recibidos hasta que la transacción de financiación haya alcanzado la profundidad suficiente.
 
+<!-- omit in toc -->
 #### Base Lógica
 
 El requisito de que `funding_satoshis` sea inferior a 2^24 satoshi fue un límite autoimpuesto temporal, mientras que las implementaciones aún no se consideraban estables, se puede eliminar anunciando `option_support_large_channel`.
@@ -307,7 +281,8 @@ Este mensaje contiene información sobre un nodo e indica su aceptación del nue
     2. data:
         * [`...*byte`:`type`]
 
-#### Requisitos
+<!-- omit in toc -->
+##### Requisitos
 
 El `temporary_channel_id` DEBE ser el mismo que el `temporary_channel_id` en
 el mensaje `open_channel`.
@@ -349,7 +324,8 @@ firma, a través de `funding_signed`, transmitirá la transacción de financiaci
     * [`u16`:`funding_output_index`]
     * [`signature`:`signature`]
 
-#### Requisitos
+<!-- omit in toc -->
+##### Requisitos
 
 El remitente DEBE establecer:
   - `temporary_channel_id` igual que `temporary_channel_id` en el mensaje `open_channel`.
@@ -369,6 +345,7 @@ El receptor:
 
 [question]: <> (¿Qué es la regla LOW-S)
 
+<!-- omit in toc -->
 #### Base Lógica
 
 `funding_output_index` solo puede tener 2 bytes, ya que así es como se empaqueta en el `channel_id` y se usa en todo el protocolo de chismes. El límite de 65.535 salidas no debería ser demasiado oneroso.
@@ -390,6 +367,7 @@ Este mensaje introduce el `channel_id` para identificar el canal. Se deriva de l
     * [`channel_id`:`channel_id`]
     * [`signature`:`signature`]
 
+<!-- omit in toc -->
 #### Requisitos
 
 Ambos `peers`:
@@ -418,6 +396,7 @@ El receptor:
   - al recibir un `funding_signed` válido:
     - DEBE transmitir la transacción de financiación.
 
+<!-- omit in toc -->
 #### Base Lógica
 
 Decidimos por `option_static_remotekey`, `option_anchor_outputs` o`option_anchors_zero_fee_htlc_tx` en este punto cuando primero tenemos que generarla transacción de compromiso. Los bits de características que se comunicaron en elintercambio de mensajes `init` para la conexión actual determinar el canalformato de compromiso para el tiempo de vida total del canal. Incluso si es más tardela reconexión no negocia este parámetro, este canal continuaráuse `option_static_remotekey`, `option_anchor_outputs` o`option_anchors_zero_fee_htlc_tx`; no admitimos la "rebaja de categoría".`option_anchors_zero_fee_htlc_tx` se considera superior a`option_anchor_outputs`, que de nuevo se considera superior a`option_static_remotekey`, y se favorece la superior si hay más de unase negocia.
@@ -440,6 +419,7 @@ Tenga en cuenta que el abridor es libre de enviar este mensaje en cualquier mome
     2. data:
         * [`short_channel_id`:`alias`]
 
+<!-- omit in toc -->
 #### Requisitos
 
 El remitente:
@@ -480,7 +460,8 @@ El receptor:
 
 Desde el punto de espera de `channel_ready` en adelante, cualquiera de los nodos PUEDEenvía un 'error' y falla el canal si no recibe una respuesta requerida delotro nodo después de un tiempo de espera razonable.
 
-#### Base lógica
+<!-- omit in toc -->
+#### Base Lógica
 
 El que no financia puede simplemente olvidar que el canal existió alguna vez, ya que los fondos no están en riesgo. Si el beneficiario recordara el canal para siempre, esto crearía un riesgo de Denegación de Servicio; por lo tanto, se recomienda olvidarlo (incluso si la promesa de `push_msat` es significativa). Si el beneficiario olvida el canal antes de que se confirme, el financiador deberá transmitir la transacción de compromiso para recuperar sus fondos y abrir un nuevo canal. Para evitar esto, el financiador debe asegurarse de que la transacción de financiamiento se confirme en los próximos 2.016 bloques.
 
@@ -520,6 +501,7 @@ Cualquiera de los nodos (o ambos) puede enviar un mensaje de `shutdown` para ini
    * [`u16`:`len`]
    * [`len*byte`:`scriptpubkey`]
 
+<!-- omit in toc -->
 #### Requisitos
 
 Un nodo emisor:
@@ -557,7 +539,8 @@ Un nodo receptor:
     - PUEDE enviar un `warning`.
     - DEBE fallar la conexión.
 
-#### Base lógica
+<!-- omit in toc -->
+#### Base Lógica
 
 Si el estado del canal es siempre "limpio" (sin cambios pendientes) cuando uncomienza el apagado, se evita la cuestión de cómo comportarse si no fuera así:el remitente siempre envía primero un `commitment_signed`.Como el cierre implica un deseo de terminar, implica que no hay nuevosSe agregarán o aceptarán HTLC. Una vez que se liquidan los HTLC, no hay compromisospor el cual se debe una revocación, y todas las actualizaciones se incluyen tanto en el compromisotransacciones, el par puede comenzar inmediatamente a cerrar la negociación, por lo que prohibimos másactualizaciones de la transacción de compromiso (en particular, `update_fee` seríaposible de otra manera). Sin embargo, aunque hay HTLC en la transacción de compromiso,el iniciador puede considerar deseable aumentar la tarifa ya que puede haberHTLC en el compromiso que podría expirar.
 
@@ -587,6 +570,7 @@ En el método moderno, el financiador envía su rango de tarifas permisible y el
         * [`u64`:`min_fee_satoshis`]
         * [`u64`:`max_fee_satoshis`]
 
+<!-- omit in toc -->
 #### Requisitos
 
 The funding node:
@@ -648,7 +632,8 @@ The receiving node:
   - if one of the outputs in the closing transaction is below the dust limit for its `scriptpubkey` (see [BOLT 3](03-transactions.md#dust-limits)):
     - MUST fail the channel
 
-#### Base lógica
+<!-- omit in toc -->
+#### Base Lógica
 
 Cuando no se proporciona `fee_range`, el requisito "estrictamente entre" garantizaese progreso hacia adelante se hace, aunque solo sea por un solo satoshi a la vez. Para evitar mantener el estado y manejar el caso de la esquina, donde las tarifas se han desplazadoentre la desconexión y la reconexión, la negociación se reinicia en la reconexión.
 Tenga en cuenta que existe un riesgo limitado si la transacción de cierre esretrasado, pero será emitido muy pronto; por lo que normalmente no hayrazón para pagar una prima por un procesamiento rápido.
@@ -702,6 +687,7 @@ La respectiva **adición/eliminación** de un HTLC se considera *irrevocablement
 transacción de compromiso anterior **sin/con** se ha revocado, O
 2. La transacción de compromiso **con/sin** se ha comprometido de forma irreversible la cadena de bloques
 
+<!-- omit in toc -->
 #### Requisitos
 
 Un nodo:
@@ -717,7 +703,8 @@ to that outgoing HTLC.
   - upon receiving an `update_fulfill_htlc` for an outgoing HTLC, OR upon discovering the `payment_preimage` from an on-chain HTLC spend:
     - MUST fulfill the incoming HTLC that corresponds to that outgoing HTLC.
 
-#### Base lógica
+<!-- omit in toc -->
+#### Base Lógica
 
 En general, un lado del intercambio debe tratarse antes que el otro.
 Cumplir con un HTLC es diferente: el conocimiento de la preimagen es, por definición, irrevocable y el HTLC entrante debe cumplirse lo antes posible para reducir la latencia.
@@ -767,6 +754,7 @@ Hay cuatro valores que deben derivarse:
 
 4. el `cltv_expiry` mínimo aceptado para pagos terminales: el El peor de los casos para el nodo terminal C son los bloques `2R+G+S` (como, de nuevo, los pasos 1-3 anteriores no se aplican). El valor predeterminado en [BOLT #11](11-pago-codificación.md) es 18, que coincide con este cálculo.
 
+<!-- omit in toc -->
 #### Requisitos
 
 An offering node:
@@ -805,6 +793,7 @@ El formato de la porción `onion_routing_packet`, que indica dónde se realiza e
     2. data:
         * [`point`:`blinding`]
 
+<!-- omit in toc -->
 #### Requisitos
 
 A sending node:
@@ -871,7 +860,8 @@ Un nodo receptor:
 
 The `onion_routing_packet` contains an obfuscated list of hops and instructions for each hop along the path.It commits to the HTLC by setting the `payment_hash` as associated data, i.e. includes the `payment_hash` in the computation of HMACs.This prevents replay attacks that would reuse a previous `onion_routing_packet` with a different `payment_hash`.
 
-#### Base lógica
+<!-- omit in toc -->
+#### Base Lógica
 
 Las cantidades no válidas son una clara violación del protocolo e indican un desglose.
 
@@ -917,6 +907,7 @@ Para un HTLC no analizable:
    * [`sha256`:`sha256_of_onion`]
    * [`u16`:`failure_code`]
 
+<!-- omit in toc -->
 #### Requisitos
 
 Un nodo:
@@ -958,7 +949,8 @@ Un nodo receptor:
       originally sent the HTLC, using the `failure_code` given and setting the
       data to `sha256_of_onion`.
 
-#### Base lógica
+<!-- omit in toc -->
+#### Base Lógica
 
 Un nodo que no agota el tiempo de espera de los HTLC corre el riesgo de fallar en el canal (ver [Selección `cltv_expiry_delta`](#cltv_expiry_delta-selection)).
 
@@ -983,6 +975,7 @@ firma la transacción resultante (como se define en [BOLT #3](03-transactions.md
    * [`u16`:`num_htlcs`]
    * [`num_htlcs*signature`:`htlc_signature`]
 
+<!-- omit in toc -->
 #### Requisitos
 
 A sending node:
@@ -1013,7 +1006,8 @@ Un nodo receptor:
       `error` and fail the channel.
   - MUST respond with a `revoke_and_ack` message.
 
-#### Base lógica
+<!-- omit in toc -->
+#### Base Lógica
 
 Tiene poco sentido ofrecer actualizaciones de spam: esto implica un bug.
 
@@ -1039,6 +1033,7 @@ La descripción de la derivación de claves se encuentra en [BOLT #3](03-transac
    * [`32*byte`:`per_commitment_secret`]
    * [`point`:`next_per_commitment_point`]
 
+<!-- omit in toc -->
 #### Requisitos
 
 A sending node:
@@ -1074,6 +1069,7 @@ El cálculo exacto utilizado para derivar la tarifa a partir del `fee rate` se p
    * [`channel_id`:`channel_id`]
    * [`u32`:`feerate_per_kw`]
 
+<!-- omit in toc -->
 #### Requisitos
 
 The node _responsible_ for paying the Bitcoin fee:
@@ -1096,7 +1092,8 @@ Un nodo receptor:
       `error` and fail the channel.
       - but MAY delay this check until the `update_fee` is committed.
 
-#### Base lógica
+<!-- omit in toc -->
+#### Base Lógica
 
 Se requieren tarifas de Bitcoin para que los cierres unilaterales sean efectivos. Con `option_anchors`, `feerate_per_kw` ya no es tan crítico para garantizar la confirmación como lo era en el formato de compromiso heredado, pero aún debe ser suficiente para poder ingresar al mempool (satisfacer la tarifa mínima de retransmisión y la tarifa mínima de mempool).
 
@@ -1126,7 +1123,8 @@ Tenga en cuenta que los mensajes descritos en [BOLT #7](07-routing-gossip.md) so
 
 `next_commitment_number`: un número de compromiso es un contador incremental de 48 bits para cada transacción de compromiso; los contadores son independientes para cada par en el canal y comienzan en 0. Solo se transmiten explícitamente al otro nodo en caso de restablecimiento; de lo contrario, son implícitos.
 
-### Requisitos
+<!-- omit in toc -->
+#### Requisitos
 
 Un nodo financiador:
   - upon disconnection:
@@ -1246,6 +1244,7 @@ Un nodo:
     - if it has sent a previous `shutdown`:
       - MUST retransmit `shutdown`.
 
+<!-- omit in toc -->
 ### Base lógica
 
 Los requisitos anteriores aseguran que la fase de apertura sea casi atómica: si no se completa, comienza de nuevo. La única excepción es si el mensaje `funding_signed` se envía pero no se recibe. En este caso, el financiador olvidará el canal y, presumiblemente, abrirá uno nuevo al volver a conectarse; mientras tanto, el otro nodo eventualmente olvidará el canal original, debido a que nunca recibió `channel_ready` o vio la transacción de financiación en la cadena.
