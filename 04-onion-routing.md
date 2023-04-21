@@ -1,151 +1,113 @@
-# BOLT #4: Onion Routing Protocol
+# BOLT #4: Protocolo Onion Routing o de enrutado de cebolla
 
 ## Overview
 
-This document describes the construction of an onion routed packet that is
-used to route a payment from an _origin node_ to a _final node_. The packet
-is routed through a number of intermediate nodes, called _hops_.
+Este documento describe la construcción de un paquete enrutado cebolla que se utiliza para enrutar un pago desde un _nodo de origen_ a un _nodo final_. El paquete se enruta a través de una serie de nodos intermedios, llamados _hops_ o _saltos_.
 
-The routing schema is based on the [Sphinx][sphinx] construction and is
-extended with a per-hop payload.
+El esquema de enrutado se basa en la contrucción [Sphinx][sphinx] y se extiende con la carga útil (`payload`) por salto.
 
-Intermediate nodes forwarding the message can verify the integrity of
-the packet and can learn which node they should forward the
-packet to. They cannot learn which other nodes, besides their
-predecessor or successor, are part of the packet's route; nor can they learn
-the length of the route or their position within it. The packet is
-obfuscated at each hop, to ensure that a network-level attacker cannot
-associate packets belonging to the same route (i.e. packets belonging
-to the same route do not share any correlating information). Notice that this
-does not preclude the possibility of packet association by an attacker
-via traffic analysis.
+Los nodos intermedios que reenvían el mensaje pueden verificar la integridad del paquete y pueden saber a qué nodo deben reenviar el paquete. No pueden saber qué otros nodos, además de su predecesor o sucesor, son parte de la ruta del paquete; tampoco pueden conocer la longitud del recorrido ni su posición dentro del mismo. El paquete se ofusca en cada salto para garantizar que un atacante a nivel de red no pueda asociar paquetes que pertenecen a la misma ruta (es decir, los paquetes que pertenecen a la misma ruta no comparten ninguna información de correlación). Tenga en cuenta que esto no excluye la posibilidad de asociación de paquetes por parte de un atacante a través del análisis de tráfico.
 
-The route is constructed by the origin node, which knows the public
-keys of each intermediate node and of the final node. Knowing each node's public key
-allows the origin node to create a shared secret (using ECDH) for each
-intermediate node and for the final node. The shared secret is then
-used to generate a _pseudo-random stream_ of bytes (which is used to obfuscate
-the packet) and a number of _keys_ (which are used to encrypt the payload and
-compute the HMACs). The HMACs are then in turn used to ensure the integrity of
-the packet at each hop.
+La ruta la construye el nodo origen, que conoce las claves públicas de cada nodo intermedio y del nodo final. Conocer la clave pública de cada nodo permite que el nodo de origen cree un secreto compartido (usando ECDH) para cada nodo intermedio y para el nodo final. Luego, el secreto compartido se usa para generar un _flujo pseudoaleatorio_ de bytes (que se usa para ofuscar el paquete) y una cantidad de _claves_ (que se usan para cifrar la carga útil y calcular los HMAC). Los HMAC se utilizan a su vez para garantizar la integridad del paquete en cada salto.
 
-Each hop along the route only sees an ephemeral key for the origin node, in
-order to hide the sender's identity. The ephemeral key is blinded by each
-intermediate hop before forwarding to the next, making the onions unlinkable
-along the route.
+Cada salto a lo largo de la ruta solo ve una clave efímera para el nodo de origen, con el fin de ocultar la identidad del remitente. La clave efímera queda oculta por cada salto intermedio antes de pasar al siguiente, lo que hace que las cebollas no se puedan vincular a lo largo de la ruta.
 
-This specification describes _version 0_ of the packet format and routing
-mechanism.
+Esta especificación describe la _versión 0_ del formato de paquete y el mecanismo de enrutamiento.
 
-A node:
-  - upon receiving a higher version packet than it implements:
-    - MUST report a route failure to the origin node.
-    - MUST discard the packet.
+Un nodo:
+  - al recibir un paquete de versión superior a la que implementa:
+    - DEBE informar una falla de ruta al nodo de origen.
+    - DEBE descartar el paquete.
 
 # Table of Contents
 
-  * [Conventions](#conventions)
-  * [Key Generation](#key-generation)
-  * [Pseudo Random Byte Stream](#pseudo-random-byte-stream)
-  * [Packet Structure](#packet-structure)
-    * [Payload Format](#payload-format)
-    * [Basic Multi-Part Payments](#basic-multi-part-payments)
-    * [Route Blinding](#route-blinding)
-  * [Accepting and Forwarding a Payment](#accepting-and-forwarding-a-payment)
-    * [Payload for the Last Node](#payload-for-the-last-node)
-    * [Non-strict Forwarding](#non-strict-forwarding)
-  * [Shared Secret](#shared-secret)
-  * [Blinding Ephemeral Keys](#blinding-ephemeral-keys)
-  * [Packet Construction](#packet-construction)
-  * [Packet Forwarding](#packet-forwarding)
-  * [Filler Generation](#filler-generation)
-  * [Returning Errors](#returning-errors)
-    * [Failure Messages](#failure-messages)
-    * [Receiving Failure Codes](#receiving-failure-codes)
-  * [Test Vector](#test-vector)
-    * [Returning Errors](#returning-errors)
-  * [References](#references)
-  * [Authors](#authors)
+- [BOLT #4: Protocolo Onion Routing o de enrutado de cebolla](#bolt-4-protocolo-onion-routing-o-de-enrutado-de-cebolla)
+  - [Overview](#overview)
+- [Table of Contents](#table-of-contents)
+- [Convenios](#convenios)
+- [Key Generation](#key-generation)
+- [Flujo de Bytes Pseudoaleatorio](#flujo-de-bytes-pseudoaleatorio)
+- [Estructura del paquete](#estructura-del-paquete)
+    - [`payload` format](#payload-format)
+    - [Requisitos](#requisitos)
+    - [Pagos Multiparte Básicos](#pagos-multiparte-básicos)
+      - [Requisitos](#requisitos-1)
+      - [Racional](#racional)
+    - [Route Blinding](#route-blinding)
+      - [Requisitos](#requisitos-2)
+      - [Racional](#racional-1)
+- [Aceptar y Reenviar un Pago](#aceptar-y-reenviar-un-pago)
+  - [Reenvío No Estricto](#reenvío-no-estricto)
+    - [Racional](#racional-2)
+    - [Recomendación](#recomendación)
+  - [Carga útil para el último nodo](#carga-útil-para-el-último-nodo)
+- [Secreto compartido](#secreto-compartido)
+- [Claves efímeras cegadoras](#claves-efímeras-cegadoras)
+- [Construcción de paquetes](#construcción-de-paquetes)
+- [Reenvío de paquetes](#reenvío-de-paquetes)
+  - [Requisitos](#requisitos-3)
+- [Generación de relleno](#generación-de-relleno)
+- [Devolviendo errores](#devolviendo-errores)
+    - [Requisitos](#requisitos-4)
+  - [Mensajes de error](#mensajes-de-error)
+    - [Requisitos](#requisitos-5)
+    - [Racional](#racional-3)
+  - [Recibir códigos de error](#recibir-códigos-de-error)
+    - [Requisitos](#requisitos-6)
+- [Test Vector](#test-vector)
+  - [Returning Errors](#returning-errors)
+- [References](#references)
+- [Authors](#authors)
 
-# Conventions
+# Convenios
 
-There are a number of conventions adhered to throughout this document:
+Hay una serie de convenios a los que se adhiere a lo largo de este documento:
 
- - HMAC: the integrity verification of the packet is based on Keyed-Hash
-   Message Authentication Code, as defined by the [FIPS 198
-   Standard][fips198]/[RFC 2104][RFC2104], and using a `SHA256` hashing
-   algorithm.
- - Elliptic curve: for all computations involving elliptic curves, the Bitcoin
-   curve is used, as specified in [`secp256k1`][sec2]
- - Pseudo-random stream: [`ChaCha20`][rfc8439] is used to generate a
-   pseudo-random byte stream. For its generation, a fixed 96-bit null-nonce
-   (`0x000000000000000000000000`) is used, along with a key derived from a shared
-   secret and with a `0x00`-byte stream of the desired output size as the
-   message.
- - The terms _origin node_ and _final node_ refer to the initial packet sender
-   and the final packet recipient, respectively.
- - The terms _hop_ and _node_ are sometimes used interchangeably, but a _hop_
-   usually refers to an intermediate node in the route rather than an end node.
-        _origin node_ --> _hop_ --> ... --> _hop_ --> _final node_
- - The term _processing node_ refers to the specific node along the route that is
-   currently processing the forwarded packet.
- - The term _peers_ refers only to hops that are direct neighbors (in the
-   overlay network): more specifically, _sending peers_ forward packets
-   to _receiving peers_.
- - Each hop in the route has a variable length `hop_payload`.
-    - The variable length `hop_payload` is prefixed with a `bigsize` encoding
-      the length in bytes, excluding the prefix and the trailing HMAC.
+ - HMAC: la verificación de la integridad del paquete se basa en el código de autenticación de mensajes Keyed-Hash, según lo define el [estándar FIPS 198][fips198]/[RFC 2104][RFC2104], y utiliza un algoritmo hash `SHA256`.
+ - Curva eliptica: para todos los cálculos que involucran curvas elípticas, se usa la curva de Bitcoin, como se especifica en [`secp256k1`][sec2]
+ - Stream Pseudo-aleatorio: [`ChaCha20`][rfc8439] se utiliza para generar un flujo de bytes pseudoaleatorios. Para su generación, se utiliza un nonce nulo fijo de 96 bits (`0x0000000000000000000000000`), junto con una clave derivada de un secreto compartido y con un flujo de bytes `0x00` del tamaño de salida deseado como mensaje.
+ - Los términos _nodo origen_ y _nodo final_ se refieren al remitente del paquete inicial y al receptor del paquete final, respectivamente.
+ - Los términos _hop_ y _node_ a veces se usan indistintamente, pero un _hop_ generalmente se refiere a un nodo intermedio en la ruta en lugar de un nodo final.
+        _nodo origen_ --> _hop_ --> ... --> _hop_ --> _nodo final_
+ - El término _nodo de procesamiento_ se refiere al nodo específico a lo largo de la ruta que actualmente está procesando el paquete reenviado.
+ - El término _peers_ se refiere solo a saltos que son vecinos directos (en la red superpuesta): más específicamente, _peers que envían_ reenvían paquetes a _peers que reciben_.
+ - Cada salto en la ruta tiene una longitud variable `hop_payload`.
+    - La longitud variable `hop_payload` tiene el prefijo `bigsize` que codifica la longitud en bytes, excluyendo el prefijo y el HMAC final.
 
 # Key Generation
 
 A number of encryption and verification keys are derived from the shared secret:
 
- - _rho_: used as key when generating the pseudo-random byte stream that is used
-   to obfuscate the per-hop information
+ - _rho_: used as key when generating the pseudo-random byte stream that is used to obfuscate the per-hop information
  - _mu_: used during the HMAC generation
  - _um_: used during error reporting
  - _pad_: use to generate random filler bytes for the starting mix-header
    packet
 
-The key generation function takes a key-type (_rho_=`0x72686F`, _mu_=`0x6d75`, 
-_um_=`0x756d`, or _pad_=`0x706164`) and a 32-byte secret as inputs and returns
-a 32-byte key.
+The key generation function takes a key-type (_rho_=`0x72686F`, _mu_=`0x6d75`, _um_=`0x756d`, or _pad_=`0x706164`) and a 32-byte secret as inputs and returns a 32-byte key.
 
-Keys are generated by computing an HMAC (with `SHA256` as hashing algorithm)
-using the appropriate key-type (i.e. _rho_, _mu_, _um_, or _pad_) as HMAC-key
-and the 32-byte shared secret as the message. The resulting HMAC is then
-returned as the key.
+Keys are generated by computing an HMAC (with `SHA256` as hashing algorithm) using the appropriate key-type (i.e. _rho_, _mu_, _um_, or _pad_) as HMAC-key and the 32-byte shared secret as the message. The resulting HMAC is then returned as the key.
 
-Notice that the key-type does not include a C-style `0x00`-termination-byte,
-e.g. the length of the _rho_ key-type is 3 bytes, not 4.
+Notice that the key-type does not include a C-style `0x00`-termination-byte, e.g. the length of the _rho_ key-type is 3 bytes, not 4.
 
-# Pseudo Random Byte Stream
+# Flujo de Bytes Pseudoaleatorio
 
-The pseudo-random byte stream is used to obfuscate the packet at each hop of the
-path, so that each hop may only recover the address and HMAC of the next hop.
-The pseudo-random byte stream is generated by encrypting (using `ChaCha20`) a
-`0x00`-byte stream, of the required length, which is initialized with a key
-derived from the shared secret and a 96-bit zero-nonce (`0x000000000000000000000000`).
+El flujo de bytes pseudoaleatorios se usa para ofuscar el paquete en cada salto de la ruta, de modo que cada salto solo pueda recuperar la dirección y el HMAC del siguiente salto. El flujo de bytes pseudoaleatorio se genera mediante el cifrado (usando `ChaCha20`) de un flujo de bytes `0x00`, de la longitud requerida, que se inicializa con una clave derivada del secreto compartido y un cero nonce de 96 bits (` 0x000000000000000000000000`).
 
-The use of a fixed nonce is safe, since the keys are never reused.
+El uso de un nonce fijo es seguro, ya que las claves nunca se reutilizan.
 
-# Packet Structure
+# Estructura del paquete
 
-The packet consists of four sections:
+El paquete está formado por cuatro secciones:
 
- - a `version` byte
- - a 33-byte compressed `secp256k1` `public_key`, used during the shared secret
-   generation
- - a 1300-byte `hop_payloads` consisting of multiple, variable length,
-   `hop_payload` payloads
- - a 32-byte `hmac`, used to verify the packet's integrity
+ - un byte de `version`
+ - 33 bytes comprimidos con `secp256k1` `public_key`, utilizado durante la generación del secreto compartido.
+ - un `hop_payloads` de 1300 bytes que consta de múltiples cargas útiles `hop_payload` de longitud variable
+ - un `hmac` de 32 bytes, utilizados para verificar la integridad del paquete.
 
-The network format of the packet consists of the individual sections
-serialized into one contiguous byte-stream and then transferred to the packet
-recipient. Due to the fixed size of the packet, it need not be prefixed by its
-length when transferred over a connection.
+El formato de red del paquete consta de secciones individuales serializadas en un flujo de bytes contiguo y luego transferidas al destinatario del paquete. Debido al tamaño fijo del paquete, no es necesario que tenga como prefijo su longitud cuando se transfiere a través de una conexión.
 
-The overall structure of the packet is as follows:
+La estrcutura generla del paquete es la siguiente:
 
 1. type: `onion_packet`
 2. data:
@@ -154,10 +116,11 @@ The overall structure of the packet is as follows:
    * [`1300*byte`:`hop_payloads`]
    * [`32*byte`:`hmac`]
 
-For this specification (_version 0_), `version` has a constant value of `0x00`.
+Para esta especificación (_versió 0_), `version` tiene un valor constante de `0x00`.
 
-The `hop_payloads` field is a structure that holds obfuscated routing information, and associated HMAC.
-It is 1300 bytes long and has the following structure:
+El campo `hop_payloads` es una estructura que contiene información de enrutamiento ofuscada y el HMAC asociado.
+
+Tiene una longitud de 1300 bytes y tiene la siguiente estructura:
 
 1. type: `hop_payloads`
 2. data:
@@ -167,18 +130,15 @@ It is 1300 bytes long and has the following structure:
    * ...
    * `filler`
 
-Where, the `length`, `payload`, and `hmac` are repeated for each hop;
-and where, `filler` consists of obfuscated, deterministically-generated padding, as detailed in [Filler Generation](#filler-generation).
-Additionally, `hop_payloads` is incrementally obfuscated at each hop.
+Donde, `length`, `payload`, y `hmac` se repiten para cada salto; y donde, `filler` consiste en un relleno ofuscado generado de forma determinista, como se detalla en [Generación de relleno](#filler-generation).
+Además, `hop_payloads` se ofusca de forma incremental en cada salto.
 
-Using the `payload` field, the origin node is able to specify the path and structure of the HTLCs forwarded at each hop.
-As the `payload` is protected under the packet-wide HMAC, the information it contains is fully authenticated with each pair-wise relationship between the HTLC sender (origin node) and each hop in the path.
+Usando el campo `payload`, el nodo de origen puede especificar la ruta y la estructura de los HTLC reenviados en cada salto.
+Como la `payload` está protegida por el HMAC de todo el paquete, la información que contiene se autentica por completo con cada relación de pares entre el remitente HTLC (nodo de origen) y cada salto en la ruta.
 
-Using this end-to-end authentication, each hop is able to cross-check the HTLC
-parameters with the `payload`'s specified values and to ensure that the
-sending peer hasn't forwarded an ill-crafted HTLC.
+Con esta autenticación de extremo a extremo, cada salto puede cotejar los parámetros HTLC con los valores especificados de la `payload` y asegurarse de que el par de envío no haya reenviado un HTLC mal diseñado.
 
-Since no `payload` TLV value can ever be shorter than 2 bytes, `length` values of 0 and 1 are reserved.  (`0` indicated a legacy format no longer supported, and `1` is reserved for future use).
+Dado que ningún valor TLV de `payload` puede ser inferior a 2 bytes, los valores de `length` de 0 y 1 están reservados. (`0` indica un formato heredado que ya no es compatible, y `1` está reservado para uso futuro).
 
 ### `payload` format
 
@@ -212,245 +172,190 @@ This is formatted according to the Type-Length-Value format defined in [BOLT #1]
     2. data:
         * [`tu64`:`total_msat`]
 
-`short_channel_id` is the ID of the outgoing channel used to route the
-message; the receiving peer should operate the other end of this channel.
+`short_channel_id` es la ID del canal saliente utilizado para enrutar el mensaje; el par receptor debe operar el otro extremo de este canal.
 
-`amt_to_forward` is the amount, in millisatoshis, to forward to the
-next receiving peer specified within the routing information, or for
-the final destination.
+`amt_to_forward` es la cantidad, en milisatoshis, para reenviar al siguiente par receptor especificado en la información de enrutamiento, o para el destino final.
 
-For non-final nodes, this includes the origin node's computed _fee_ for the
-receiving peer, calculated according to the receiving peer's advertised fee
-schema (as described in [BOLT #7](07-routing-gossip.md#htlc-fees)).
+Para los nodos no finales, esto incluye la _tarifa_ calculada del nodo de origen para el par receptor, calculada de acuerdo con el esquema de tarifas anunciadas del par receptor (como se describe en [BOLT #7](07-routing-gossip.md#htlc-fees)) .
 
-`outgoing_cltv_value` is the CLTV value that the _outgoing_ HTLC
-carrying the packet should have.  Inclusion of this field allows a hop
-to both authenticate the information specified by the origin node, and
-the parameters of the HTLC forwarded, and ensure the origin node is
-using the current `cltv_expiry_delta` value.
+`outgoing_cltv_value` es el valor CLTV que debe tener el HTLC _outgoing_ que transporta el paquete. La inclusión de este campo permite un salto para autenticar la información especificada por el nodo de origen y los parámetros del HTLC reenviado, y garantizar que el nodo de origen esté utilizando el valor `cltv_expiry_delta` actual.
 
-If the values don't correspond, this indicates that either a
-forwarding node has tampered with the intended HTLC values or that the
-origin node has an obsolete `cltv_expiry_delta` value.
+Si los valores no se corresponden, esto indica que un nodo de reenvío ha manipulado los valores HTLC previstos o que el nodo de origen tiene un valor `cltv_expiry_delta` obsoleto.
 
-The requirements ensure consistency in responding to an unexpected
-`outgoing_cltv_value`, whether it is the final node or not, to avoid
-leaking its position in the route.
+Los requisitos aseguran la consistencia en la respuesta a un `outgoing_cltv_value` inesperado, sea el nodo final o no, para evitar filtrar su posición en la ruta.
 
-### Requirements
+### Requisitos
 
-The creator of `encrypted_recipient_data` (usually, the recipient of payment):
+El creador de `encrypted_recipient_data` (generalmente, el destinatario del pago):
 
-  - MUST create `encrypted_data_tlv` for each node in the blinded route (including itself).
-  - MUST include `encrypted_data_tlv.short_channel_id` and `encrypted_data_tlv.payment_relay` for each non-final node.
-  - MUST set `encrypted_data_tlv.payment_constraints` for each non-final node:
-    - `max_cltv_expiry` to the largest block height at which the route is allowed to be used, starting
-    from the final node and adding `encrypted_data_tlv.payment_relay.cltv_expiry_delta` at each hop.
-    - `htlc_minimum_msat` to the largest minimum HTLC value the nodes will allow.
-  - If it sets `encrypted_data_tlv.allowed_features`:
-    - MUST set it to an empty array.
-  - MUST compute the total fees and cltv delta of the route as follows and communicate them to the sender:
+  - DEBE crear `encrypted_data_tlv` para cada nodo en la ruta ciega (incluido él mismo).
+  - DEBE incluir `encrypted_data_tlv.short_channel_id` y `encrypted_data_tlv.payment_relay` para cada nodo no final.
+  - DEBE configurar `encrypted_data_tlv.payment_constraints` para cada nodo no final:
+    - `max_cltv_expiry` a la altura de bloque más grande a la que se permite usar la ruta, comenzando
+    desde el nodo final y añadiendo `encrypted_data_tlv.payment_relay.cltv_expiry_delta` en cada salto.
+    - `htlc_minimum_msat` al mayor valor mínimo de HTLC que permitan los nodos.
+  - Si establece `encrypted_data_tlv.allowed_features`:
+    - DEBE establecerlo en una matriz vacía.
+  - DEBE calcular las tarifas totales y cltv delta de la ruta de la siguiente manera y comunicarlas al remitente:
     - `total_fee_base_msat(n+1) = (fee_base_msat(n+1) * 1000000 + total_fee_base_msat(n) * (1000000 + fee_proportional_millionths(n+1)) + 1000000 - 1) / 1000000`
     - `total_fee_proportional_millionths(n+1) = ((total_fee_proportional_millionths(n) + fee_proportional_millionths(n+1)) * 1000000 + total_fee_proportional_millionths(n) * fee_proportional_millionths(n+1) + 1000000 - 1) / 1000000`
-  - MUST create the `encrypted_recipient_data` from the `encrypted_data_tlv` as required in [Route Blinding](#route-blinding).
+  - DEBE crear `encrypted_recipient_data` a partir de `encrypted_data_tlv` como se requiere en [Route Blinding](#route-blinding).
 
-The writer of `tlv_payload`:
+El escritor de `tlv_payload`:
 
-  - For every node inside a blinded route:
-    - MUST include the `encrypted_recipient_data` provided by the recipient
-    - For the first node in the blinded route:
-      - MUST include the `blinding_point` provided by the recipient in `current_blinding_point`
-    - If it is the final node:
-      - MUST include `amt_to_forward`, `outgoing_cltv_value` and `total_amount_msat`.
-    - MUST NOT include any other tlv field.
-  - For every node outside of a blinded route:
-    - MUST include `amt_to_forward` and `outgoing_cltv_value`.
-    - For every non-final node:
-      - MUST include `short_channel_id`
-      - MUST NOT include `payment_data`
-    - For the final node:
-      - MUST NOT include `short_channel_id`
-      - if the recipient provided `payment_secret`:
-        - MUST include `payment_data`
-        - MUST set `payment_secret` to the one provided
-        - MUST set `total_msat` to the total amount it will send
-      - if the recipient provided `payment_metadata`:
-        - MUST include `payment_metadata` with every HTLC
-        - MUST not apply any limits to the size of `payment_metadata` except the limits implied by the fixed onion size
+  - Para cada nodo dentro de una ruta ciega:
+    - DEBE incluir los `encrypted_recipient_data` proporcionados por el destinatario
+    - Para el primer nodo de la ruta ciega:
+      - DEBE incluir el `blinding_point` proporcionado por el destinatario en `current_blinding_point`
+    - Si es el nodo final:
+      - DEBE incluir `amt_to_forward`, `outgoing_cltv_value` y `total_amount_msat`.
+    - NO DEBE incluir ningún otro campo tlv.
+  - Para cada nodo fuera de una ruta ciega:
+    - DEBE incluir `amt_to_forward` y `outgoing_cltv_value`.
+    - Para cada nodo no final:
+      - DEBE incluir `short_channel_id`
+      - NO DEBE incluir `payment_data`
+    - Para el nodo final:
+      - NO DEBE incluir `short_channel_id`
+      - si el destinatario proporcionó `payment_secret`:
+        - DEBE incluir `payment_data`
+        - DEBE establecer `payment_secret` en el proporcionado
+        - DEBE establecer `total_msat` en la cantidad total que enviará
+      - si el destinatario proporcionó `payment_metadata`:
+        - DEBE incluir `payment_metadata` con cada HTLC
+        - No DEBE aplicar ningún límite al tamaño de `payment_metadata` excepto los límites implícitos en el tamaño de cebolla fijo
 
-The reader:
+El lector:
 
-  - If `encrypted_recipient_data` is present:
-    - If `blinding_point` is set in the incoming `update_add_htlc`:
-      - MUST return an error if `current_blinding_point` is present.
-      - MUST use that `blinding_point` as the blinding point for decryption.
-    - Otherwise:
-      - MUST return an error if `current_blinding_point` is not present.
-      - MUST use that `current_blinding_point` as the blinding point for decryption.
-      - SHOULD add a random delay before returning errors.
-    - MUST return an error if `encrypted_recipient_data` does not decrypt using the
-      blinding point as described in [Route Blinding](#route-blinding).
-    - If `payment_constraints` is present:
-      - MUST return an error if:
-        - the expiry is greater than `encrypted_recipient_data.payment_constraints.max_cltv_expiry`.
-        - the amount is below `encrypted_recipient_data.payment_constraints.htlc_minimum_msat`.
-    - If `allowed_features` is missing:
-      - MUST process the message as if it were present and contained an empty array.
-    - MUST return an error if:
-      - `encrypted_recipient_data.allowed_features.features` contains an unknown feature bit (even if it is odd).
-      - the payment uses a feature not included in `encrypted_recipient_data.allowed_features.features`.
-    - If it is not the final node:
-      - MUST return an error if the payload contains other tlv fields than `encrypted_recipient_data` and `current_blinding_point`.
-      - MUST return an error if `encrypted_recipient_data` does not contain either `short_channel_id` or `next_node_id`.
-      - MUST return an error if `encrypted_recipient_data` does not contain `payment_relay`.
-      - MUST use values from `encrypted_recipient_data.payment_relay` to calculate `amt_to_forward` and `outgoing_cltv_value` as follows:
+  - Si `encrypted_recipient_data` está presente:
+    - Si se establece `blinding_point` en el `update_add_htlc` entrante:
+      - DEBE devolver un error si `current_blinding_point` está presente.
+      - DEBE usar ese `blinding_point` como el punto ciego para el descifrado.
+    - De lo contrario:
+      - DEBE devolver un error si `current_blinding_point` no está presente.
+      - DEBE usar ese `current_blinding_point` como el punto ciego para el descifrado.
+      - DEBERÍA agregar un retraso aleatorio antes de devolver errores.
+    - DEBE devolver un error si `encrypted_recipient_data` no se descifra usando el
+      punto ciego como se describe en [Route Blinding](#route-blinding).
+    - Si `payment_constraints` está presente:
+      - DEBE devolver un error si:
+        - el vencimiento es mayor que `encrypted_recipient_data.payment_constraints.max_cltv_expiry`.
+        - la cantidad está por debajo de `encrypted_recipient_data.payment_constraints.htlc_minimum_msat`.
+    - Si falta `características_permitidas`:
+      - DEBE procesar el mensaje como si estuviera presente y contuviera una matriz vacía.
+    - DEBE devolver un error si:
+      - `encrypted_recipient_data.allowed_features.features` contiene un bit de función desconocido (incluso si es impar).
+      - el pago utiliza una característica no incluida en `encrypted_recipient_data.allowed_features.features`.
+    - Si no es el nodo final:
+      - DEBE devolver un error si la carga útil contiene otros campos tlv además de `encrypted_recipient_data` y `current_blinding_point`.
+      - DEBE devolver un error si `encrypted_recipient_data` no contiene `short_channel_id` o `next_node_id`.
+      - DEBE devolver un error si `encrypted_recipient_data` no contiene `payment_relay`.
+      - DEBE usar valores de `encrypted_recipient_data.payment_relay` para calcular `amt_to_forward` y `outgoing_cltv_value` de la siguiente manera:
         - `amt_to_forward = ((amount_msat - fee_base_msat) * 1000000 + 1000000 + fee_proportional_millionths - 1) / (1000000 + fee_proportional_millionths)`
-        - `outgoing_cltv_value = cltv_expiry - payment_relay.cltv_expiry_delta`
-    - If it is the final node:
-      - MUST return an error if the payload contains other tlv fields than `encrypted_recipient_data`, `current_blinding_point`, `amt_to_forward`, `outgoing_cltv_value` and `total_amount_msat`.
-      - MUST return an error if `amt_to_forward`, `outgoing_cltv_value` or `total_amount_msat` are not present.
-      - MUST return an error if `amt_to_forward` is below what it expects for the payment.
-      - MUST return an error if incoming `cltv_expiry` < `outgoing_cltv_value`.
-      - MUST return an error if incoming `cltv_expiry` < `current_block_height` + `min_final_cltv_expiry_delta`.
-  - Otherwise (it is not part of a blinded route):
-    - MUST return an error if `blinding_point` is set in the incoming `update_add_htlc` or `current_blinding_point` is present.
-    - MUST return an error if `amt_to_forward` or `outgoing_cltv_value` are not present.
-    - if it is not the final node:
-      - MUST return an error if:
-        - `short_channel_id` is not present,
-        - it cannot forward the HTLC to the peer indicated by the channel `short_channel_id`.
-        - incoming `amount_msat` - `fee` < `amt_to_forward` (where `fee` is the advertised fee as described in [BOLT #7](07-routing-gossip.md#htlc-fees))
+        - `outgoing_cltv_value = cltv_expiry - pago_relay.cltv_expiry_delta`
+    - Si es el nodo final:
+      - DEBE devolver un error si la carga útil contiene otros campos tlv que `encrypted_recipient_data`, `current_blinding_point`, `amt_to_forward`, `outgoing_cltv_value` y `total_amount_msat`.
+      - DEBE devolver un error si `amt_to_forward`, `outgoing_cltv_value` o `total_amount_msat` no están presentes.
+      - DEBE devolver un error si `amt_to_forward` está por debajo de lo que espera para el pago.
+      - DEBE devolver un error si `cltv_expiry` entrante < `outgoing_cltv_value`.
+      - DEBE devolver un error si `cltv_expiry` entrante < `current_block_height` + `min_final_cltv_expiry_delta`.
+  - En caso contrario (no forma parte de una ruta ciega):
+    - DEBE devolver un error si `blinding_point` está configurado en `update_add_htlc` entrante o `current_blinding_point` está presente.
+    - DEBE devolver un error si `amt_to_forward` o `outgoing_cltv_value` no están presentes.
+    - si no es el nodo final:
+      - DEBE devolver un error si:
+        - `short_channel_id` no está presente,
+        - no puede reenviar el HTLC al par indicado por el canal `short_channel_id`.
+        - `amount_msat` entrante - `fee` < `amt_to_forward` (donde `fee` es la tarifa anunciada como se describe en [BOLT #7](07-routing-gossip.md#htlc-fees))
         - `cltv_expiry` - `cltv_expiry_delta` < `outgoing_cltv_value`
-  - If it is the final node:
-    - MUST treat `total_msat` as if it were equal to `amt_to_forward` if it is not present.
-    - MUST return an error if:
-      - incoming `amount_msat` < `amt_to_forward`.
-      - incoming `cltv_expiry` < `outgoing_cltv_value`.
-      - incoming `cltv_expiry` < `current_block_height` + `min_final_cltv_expiry_delta`.
+  - Si es el nodo final:
+    - DEBE tratar `total_msat` como si fuera igual a `amt_to_forward` si no está presente.
+    - DEBE devolver un error si:
+      - entrante `amount_msat` < `amt_to_forward`.
+      - `cltv_expiry` entrante < `outgoing_cltv_value`.
+      - entrante `cltv_expiry` < `current_block_height` + `min_final_cltv_expiry_delta`.
 
-Additional requirements are specified [here](#basic-multi-part-payments) for
-multi-part payments, and [here](#route-blinding) for blinded payments.
+Se especifican requisitos adicionales [aquí](#pagos-multiparte-básicos) para pagos de varias partes y [aquí](#route-blinding) para pagos ocultos.
 
-### Basic Multi-Part Payments
+### Pagos Multiparte Básicos
 
-An HTLC may be part of a larger "multi-part" payment: such
-"base" atomic multipath payments will use the same `payment_hash` for
-all paths.
+Un HTLC puede ser parte de un pago 'multiparte' más grande: tales pagos atómicos 'base' de rutas múltiples utilizarán el mismo `payment_hash` para todas las rutas.
 
-Note that `amt_to_forward` is the amount for this HTLC only: a
-`total_msat` field containing a greater value is a promise by the
-ultimate sender that the rest of the payment will follow in succeeding
-HTLCs; we call these outstanding HTLCs which have the same preimage,
-an "HTLC set".
+Tenga en cuenta que `amt_to_forward` es la cantidad para este HTLC únicamente: un campo `total_msat` que contiene un valor mayor es una promesa del remitente final de que el resto del pago seguirá en los HTLC sucesivos; llamamos a estos HTLC sobresalientes que tienen la misma preimagen, un 'conjunto HTLC'.
 
-Note that there are two distinct tlv fields that can be used to transmit
-`total_msat`. The last one, `total_amount_msat`, was introduced with
-blinded paths for which the `payment_secret` doesn't make sense.
+Tenga en cuenta que hay dos campos tlv distintos que se pueden usar para transmitir `total_msat`. El último, `total_amount_msat`, se introdujo con rutas ciegas para las que `payment_secret` no tiene sentido.
 
-`payment_metadata` is to be included in every payment part, so that
-invalid payment details can be detected as early as possible.
+`metadatos_de_pago` debe incluirse en cada parte de pago, de modo que los detalles de pago no válidos puedan detectarse lo antes posible.
 
-#### Requirements
+#### Requisitos
 
-The writer:
-  - if the invoice offers the `basic_mpp` feature:
-    - MAY send more than one HTLC to pay the invoice.
-    - MUST use the same `payment_hash` on all HTLCs in the set.
-    - SHOULD send all payments at approximately the same time.
-    - SHOULD try to use diverse paths to the recipient for each HTLC.
-    - SHOULD retry and/or re-divide HTLCs which fail.
-    - if the invoice specifies an `amount`:
-       - MUST set `total_msat` to at least that `amount`, and less
-         than or equal to twice `amount`.
-    - otherwise:
-      - MUST set `total_msat` to the amount it wishes to pay.
-    - MUST ensure that the total `amt_to_forward` of the HTLC set which arrives
-      at the payee is equal to or greater than `total_msat`.
-    - MUST NOT send another HTLC if the total `amt_to_forward` of the HTLC set
-      is already greater or equal to `total_msat`.
-    - MUST include `payment_secret`.
-  - otherwise:
-    - MUST set `total_msat` equal to `amt_to_forward`.
+El escritor:
+  - si la factura ofrece la función `basic_mpp`:
+    - PUEDE enviar más de un HTLC para pagar la factura.
+    - DEBE usar el mismo `payment_hash` en todos los HTLC del conjunto.
+    - DEBE enviar todos los pagos aproximadamente al mismo tiempo.
+    - DEBERÍA tratar de utilizar diversas rutas al destinatario para cada HTLC.
+    - DEBERÍA volver a intentar y/o volver a dividir los HTLC que fallan.
+    - si la factura especifica un `amount`:
+       - DEBE establecer `total_msat` en al menos esa `amount`, y menos
+         que o igual al doble de la `amount`.
+    - de lo contrario:
+      - DEBE establecer `total_msat` en la cantidad que desea pagar.
+    - DEBE asegurarse de que el `amt_to_forward` total del conjunto HTLC que llega
+      en el beneficiario es igual o mayor que `total_msat`.
+    - NO DEBE enviar otro HTLC si el `amt_to_forward` total del conjunto HTLC
+      ya es mayor o igual a `total_msat`.
+    - DEBE incluir `payment_secret`.
+  - de lo contrario:
+    - DEBE establecer `total_msat` igual a `amt_to_forward`.
 
-The final node:
-  - MUST fail the HTLC if dictated by Requirements under [Failure Messages](#failure-messages)
-    - Note: "amount paid" specified there is the `total_msat` field.
-  - if it does not support `basic_mpp`:
-    - MUST fail the HTLC if `total_msat` is not exactly equal to `amt_to_forward`.
-  - otherwise, if it supports `basic_mpp`:
-    - MUST add it to the HTLC set corresponding to that `payment_hash`.
-    - SHOULD fail the entire HTLC set if `total_msat` is not the same for
-      all HTLCs in the set.
-    - if the total `amt_to_forward` of this HTLC set is equal to or greater
-      than `total_msat`:
-      - SHOULD fulfill all HTLCs in the HTLC set
-    - otherwise, if the total `amt_to_forward` of this HTLC set is less than
+El nodo final:
+  - DEBE fallar el HTLC si lo dictan los requisitos en [Mensajes de error] (#mensajes de error)
+    - Nota: 'cantidad pagada' especificada allí está el campo `total_msat`.
+  - si no es compatible con `basic_mpp`:
+    - DEBE fallar el HTLC si `total_msat` no es exactamente igual a `amt_to_forward`.
+  - de lo contrario, si es compatible con `basic_mpp`:
+    - DEBE agregarlo al conjunto HTLC correspondiente a ese `pago_hash`.
+    - DEBERÍA fallar todo el conjunto HTLC si `total_msat` no es el mismo para
+      todos los HTLC del conjunto.
+    - si el `amt_to_forward` total de este conjunto HTLC es igual o mayor
+      que `total_msat`:
+      - DEBE cumplir con todos los HTLC en el conjunto HTLC
+    - de lo contrario, si el `amt_to_forward` total de este conjunto HTLC es menor que
       `total_msat`:
-      - MUST NOT fulfill any HTLCs in the HTLC set
-      - MUST fail all HTLCs in the HTLC set after some reasonable timeout.
-        - SHOULD wait for at least 60 seconds after the initial HTLC.
-        - SHOULD use `mpp_timeout` for the failure message.
-      - MUST require `payment_secret` for all HTLCs in the set.
-    - if it fulfills any HTLCs in the HTLC set:
-       - MUST fulfill the entire HTLC set.
+      - NO DEBE cumplir con ningún HTLC en el conjunto HTLC
+      - DEBEN fallar todos los HTLC en el conjunto HTLC después de un tiempo de espera razonable.
+        - DEBE esperar al menos 60 segundos después del HTLC inicial.
+        - DEBE usar `mpp_timeout` para el mensaje de error.
+      - DEBE requerir `payment_secret` para todos los HTLC en el conjunto.
+    - si cumple con cualquier HTLC en el conjunto HTLC:
+       - DEBE cumplir con todo el conjunto HTLC.
+#### Racional
 
-#### Rationale
+Si `basic_mpp` está presente, provoca un retraso para permitir que se combinen otros pagos parciales. El monto total debe ser suficiente para el pago deseado, al igual que para los pagos únicos. Pero esto debe estar razonablemente acotado para evitar una denegación de servicio.
 
-If `basic_mpp` is present it causes a delay to allow other partial
-payments to combine.  The total amount must be sufficient for the
-desired payment, just as it must be for single payments.  But this must
-be reasonably bounded to avoid a denial-of-service.
+Debido a que las facturas no necesariamente especifican un monto, y debido a que los pagadores pueden agregar ruido al monto final, el monto total debe enviarse explícitamente. Los requisitos permiten superarlo ligeramente, ya que simplifica añadir ruido al importe al fraccionar, así como escenarios en los que los remitentes son realmente independientes (amigos dividiendo una cuenta, por ejemplo).
 
-Because invoices do not necessarily specify an amount, and because
-payers can add noise to the final amount, the total amount must be
-sent explicitly.  The requirements allow exceeding this slightly, as
-it simplifies adding noise to the amount when splitting, as well as
-scenarios in which the senders are genuinely independent (friends
-splitting a bill, for example).
+Debido a que un nodo puede necesitar pagar más de la cantidad deseada (debido al valor `htlc_minimum_msat` de los canales en la ruta deseada), los nodos pueden pagar más que el `total_msat` que especificaron. De lo contrario, los nodos estarían limitados en cuanto a las rutas que pueden tomar al volver a intentar pagos a lo largo de rutas específicas. Sin embargo, ningún HTLC individual puede ser por menos de la diferencia entre el total pagado y `total_msat`.
 
-Because a node may need to pay more than its desired amount (due to the
-`htlc_minimum_msat` value of channels in the desired path), nodes are allowed
-to pay more than the `total_msat` they specified. Otherwise, nodes would be
-constrained in which paths they can take when retrying payments along specific
-paths. However, no individual HTLC may be for less than the difference between
-the total paid and `total_msat`.
+La restricción de enviar un HTLC una vez que el conjunto supera el total acordado impide que se libere la preimagen antes de que hayan llegado todos los pagos parciales: eso permitiría a cualquier nodo intermedio reclamar de inmediato los pagos parciales pendientes.
 
-The restriction on sending an HTLC once the set is over the agreed total prevents the preimage being released before all
-the partial payments have arrived: that would allow any intermediate
-node to immediately claim any outstanding partial payments.
-
-An implementation may choose not to fulfill an HTLC set which
-otherwise meets the amount criterion (eg. some other failure, or
-invoice timeout), however if it were to fulfill only some of them,
-intermediary nodes could simply claim the remaining ones.
+Una implementación puede optar por no cumplir con un conjunto HTLC que de otro modo cumple con el criterio de cantidad (por ejemplo, alguna otra falla o tiempo de espera de la factura), sin embargo, si solo cumpliera con algunos de ellos, los nodos intermediarios podrían simplemente reclamar los restantes.
 
 ### Route Blinding
 
-Nodes receiving onion packets may hide their identity from senders by
-"blinding" an arbitrary amount of hops at the end of an onion path.
+Los nodos que reciben paquetes cebolla pueden ocultar su identidad a los remitentes 'cegando' una cantidad arbitraria de saltos al final de una ruta cebolla.
 
-When using route blinding, nodes find a route to themselves from a given
-"introduction node" and initial "blinding point". They then use ECDH with
-each node in that route to create a "blinded" node ID and an encrypted blob
-(`encrypted_data`) for each one of the blinded nodes.
+Cuando se usa el enmascaramiento de rutas, los nodos encuentran una ruta hacia ellos mismos desde un 'nodo de introducción' y un 'punto de enmascaramiento' inicial dado. Luego usan ECDH con cada nodo en esa ruta para crear una ID de nodo 'ciego' y un blob encriptado (`encrypted_data`) para cada uno de los nodos ciegos.
 
-They communicate this blinded route and the encrypted blobs to the sender.
-The sender finds a route to the introduction node and extends it with the
-blinded route provided by the recipient. The sender includes the encrypted
-blobs in the corresponding onion payloads: they allow nodes in the blinded
-part of the route to "unblind" the next node and correctly forward the packet.
+Comunican esta ruta ciega y los blobs cifrados al remitente.
+El remitente encuentra una ruta al nodo de introducción y la amplía con la ruta ciega proporcionada por el destinatario. El remitente incluye los blobs cifrados en las cargas útiles de cebolla correspondientes: permiten que los nodos en la parte oculta de la ruta 'desbloqueen' el siguiente nodo y reenvíen correctamente el paquete.
 
-Note that there are two ways for the sender to reach the introduction
-point: one is to create a normal (unblinded) payment, and place the
-initial blinding point in `current_blinding_point` along with the
-`encrypted_data` in the onion payload for the introduction point to
-start the blinded path. The second way is to create a blinded path to
-the introduction point, set `next_blinding_override` inside the
-`encrypted_data_tlv` on the hop prior to the introduction point to the
-initial blinding point, and have it sent to the introduction node.
+Tenga en cuenta que el remitente tiene dos formas de llegar al punto de introducción: una es crear un pago normal (no cegado) y colocar el punto de cegamiento inicial en `current_blinding_point` junto con el
+`encrypted_data` en la carga útil de cebolla para el punto de introducción para iniciar la ruta ciega. La segunda forma es crear una ruta ciega al punto de introducción, establezca `next_blinding_override` dentro del
+`encrypted_data_tlv` en el salto anterior al punto de introducción al punto ciego inicial, y enviarlo al nodo de introducción.
 
-The `encrypted_data` is a TLV stream, encrypted for a given blinded node, that
-may contain the following TLV fields:
+Los `datos_cifrados` son un flujo TLV, cifrado para un nodo ciego dado, que puede contener los siguientes campos TLV:
 
 1. `tlv_stream`: `encrypted_data_tlv`
 2. types:
@@ -482,288 +387,168 @@ may contain the following TLV fields:
     2. data:
         * [`...*byte`:`features`]
 
-#### Requirements
+#### Requisitos
 
-A recipient N(r) creating a blinded route `N(0) -> N(1) -> ... -> N(r)` to itself:
+Un destinatario N(r) que crea una ruta ciega `N(0) -> N(1) -> ... -> N(r)` hacia sí mismo:
 
-- MUST create a blinded node ID `B(i)` for each node using the following algorithm:
-  - `e(0) <- {0;1}^256`
+- DEBE crear un ID de nodo ciego `B(i)` para cada nodo utilizando el siguiente algoritmo:
+  - `e(0) <- {0;1}%256`
   - `E(0) = e(0) * G`
-  - For every node in the route:
-    - let `N(i) = k(i) * G` be the `node_id` (`k(i)` is `N(i)`'s private key)
-    - `ss(i) = SHA256(e(i) * N(i)) = SHA256(k(i) * E(i))` (ECDH shared secret known only by `N(r)` and `N(i)`)
-    - `B(i) = HMAC256("blinded_node_id", ss(i)) * N(i)` (blinded `node_id` for `N(i)`, private key known only by `N(i)`)
-    - `rho(i) = HMAC256("rho", ss(i))` (key used to encrypt the payload for `N(i)` by `N(r)`)
-    - `e(i+1) = SHA256(E(i) || ss(i)) * e(i)` (blinding ephemeral private key, only known by `N(r)`)
-    - `E(i+1) = SHA256(E(i) || ss(i)) * E(i)` (NB: `N(i)` MUST NOT learn `e(i)`)
-- MAY replace `E(i+1)` with a different value, but if it does:
-  - MUST set `encrypted_data_tlv(i).next_blinding_override` to `E(i+1)`
-- MAY store private data in `encrypted_data_tlv(r).path_id` to verify that the route is used in the right context and was created by them
-- SHOULD add padding data to ensure all `encrypted_data_tlv(i)` have the same length
-- MUST encrypt each `encrypted_data_tlv(i)` with ChaCha20-Poly1305 using the corresponding `rho(i)` key and an all-zero nonce to produce `encrypted_recipient_data(i)`
-- MUST communicate the blinded node IDs `B(i)` and `encrypted_recipient_data(i)` to the sender
-- MUST communicate the real node ID of the introduction point `N(0)` to the sender
-- MUST communicate the first blinding ephemeral key `E(0)` to the sender
+  - Para cada nodo de la ruta:
+    - sea `N(i) = k(i) * G` el `node_id` (`k(i)` es la clave privada de `N(i)`)
+    - `ss(i) = SHA256(e(i) * N(i)) = SHA256(k(i) * E(i))` (secreto compartido ECDH conocido solo por `N(r)` y `N( yo)`)
+    - `B(i) = HMAC256('blinded_node_id', ss(i)) * N(i)` (`node_id` ciego para `N(i)`, clave privada conocida solo por `N(i)`)
+    - `rho(i) = HMAC256('rho', ss(i))` (clave utilizada para cifrar la carga útil para `N(i)` por `N(r)`)
+    - `e(i+1) = SHA256(E(i) || ss(i)) * e(i)` (clave privada efímera ciega, solo conocida por `N(r)`)
+    - `E(i+1) = SHA256(E(i) || ss(i)) * E(i)` (NB: `N(i)` NO DEBE aprender `e(i)`)
+- PUEDE reemplazar `E(i+1)` con un valor diferente, pero si lo hace:
+  - DEBE establecer `encrypted_data_tlv(i).next_blinding_override` en `E(i+1)`
+- PUEDE almacenar datos privados en `encrypted_data_tlv(r).path_id` para verificar que la ruta se usa en el contexto correcto y fue creada por ellos
+- DEBERÍA agregar datos de relleno para garantizar que todos los `encrypted_data_tlv(i)` tengan la misma longitud
+- DEBE encriptar cada `encrypted_data_tlv(i)` con ChaCha20-Poly1305 usando la clave `rho(i)` correspondiente y un solo cero para producir `encrypted_recipient_data(i)`
+- DEBE comunicar los ID de nodo ocultos `B(i)` y `encrypted_recipient_data(i)` al remitente
+- DEBE comunicar el ID de nodo real del punto de introducción `N(0)` al remitente
+- DEBE comunicar la primera clave efímera cegadora `E(0)` al remitente
 
-A reader:
+Un lector:
 
-- If it receives `blinding_point` (`E(i)`) from the prior peer:
-  - MUST use `b(i)` instead of its private key `k(i)` to decrypt the onion.
-    Note that the node may instead tweak the onion ephemeral key with
-    `HMAC256("blinded_node_id", ss(i))` which achieves the same result.
-- Otherwise:
-  - MUST use `k(i)` to decrypt the onion, to extract `current_blinding_point` (`E(i)`).
-- MUST compute:
-  - `ss(i) = SHA256(k(i) * E(i))` (standard ECDH)
-  - `b(i) = HMAC256("blinded_node_id", ss(i)) * k(i)`
-  - `rho(i) = HMAC256("rho", ss(i))`
+- Si recibe `blinding_point` (`E(i)`) del par anterior:
+  - DEBE usar `b(i)` en lugar de su clave privada `k(i)` para descifrar la cebolla.
+    Tenga en cuenta que el nodo puede modificar la clave efímera cebolla con `HMAC256('blinded_node_id', ss(i))` que logra el mismo resultado.
+- De lo contrario:
+  - DEBE usar `k(i)` para descifrar la cebolla, para extraer `current_blinding_point` (`E(i)`).
+- DEBE calcular:
+  - `ss(i) = SHA256(k(i) * E(i))` (ECDH estándar)
+  - `b(i) = HMAC256('blinded_node_id', ss(i)) * k(i)`
+  - `rho(i) = HMAC256('rho', ss(i))`
   - `E(i+1) = SHA256(E(i) || ss(i)) * E(i)`
-- MUST decrypt the `encrypted_data` field using `rho(i)` and use the
-  decrypted fields to locate the next node
-- If the `encrypted_data` field is missing or cannot be decrypted:
-  - MUST return an error
-- If `encrypted_data` contains a `next_blinding_override`:
-  - MUST use it as the next blinding point instead of `E(i+1)`
-- Otherwise:
-  - MUST use `E(i+1)` as the next blinding point
-- MUST forward the onion and include the next blinding point in the lightning
-  message for the next node
+- DEBE descifrar el campo `encrypted_data` usando `rho(i)` y usar los campos descifrados para ubicar el siguiente nodo
+- Si falta el campo `encrypted_data` o no se puede descifrar:
+  - DEBE devolver un error
+- Si `encrypted_data` contiene `next_blinding_override`:
+  - DEBE usarlo como el siguiente punto ciego en lugar de `E(i+1)`
+- De lo contrario:
+  - DEBE usar `E(i+1)` como el siguiente punto ciego
+- DEBE reenviar la cebolla e incluir el siguiente punto ciego en el mensaje de relámpago para el siguiente nodo
 
-The final recipient:
+El receptor final:
 
-- MUST compute:
-  - `ss(r) = SHA256(k(r) * E(r))` (standard ECDH)
+- DEBE calcular:
+  - `ss(r) = SHA256(k(r) * E(r))` (ECDH estandard)
   - `b(r) = HMAC256("blinded_node_id", ss(r)) * k(r)`
   - `rho(r) = HMAC256("rho", ss(r))`
-- MUST decrypt the `encrypted_data` field using `rho(r)`
-- If the `encrypted_data` field is missing or cannot be decrypted:
-  - MUST return an error
-- MUST ignore the message if the `path_id` does not match the blinded route it
-  created
+- DEBE descrifar el campo `encrypted_data` usando `rho(r)`
+- Si falta el campo `encrypted_data` o no puede ser descifrado:
+  - DEBE devolver un error
+- DEBE ignorar el mensaje si `path_id` no coincide con la ruta ciega que creó
 
-#### Rationale
+#### Racional
 
-Route blinding is a lightweight technique to provide recipient anonymity.
-It's more flexible than rendezvous routing because it simply replaces the public
-keys of the nodes in the route with random public keys while letting senders
-choose what data they put in the onion for each hop. Blinded routes are also
-reusable in some cases (e.g. onion messages).
+El enmascaramiento de rutas es una técnica ligera para brindar anonimato a los destinatarios.
+Es más flexible que el enrutamiento de encuentro porque simplemente reemplaza las claves públicas de los nodos en la ruta con claves públicas aleatorias mientras permite que los remitentes elijan qué datos ponen en la cebolla para cada salto. Las rutas ciegas también son reutilizables en algunos casos (por ejemplo, mensajes de cebolla).
 
-Each node in the blinded route needs to receive `E(i)` to be able to decrypt
-the onion and the `encrypted_data` payload. Protocols that use route blinding
-must specify how this value is propagated between nodes.
+Cada nodo en la ruta ciega necesita recibir `E(i)` para poder descifrar la cebolla y la carga útil `encrypted_data`. Los protocolos que utilizan el enmascaramiento de rutas deben especificar cómo se propaga este valor entre los nodos.
 
-When concatenating two blinded routes generated by different nodes, the
-last node of the first route needs to know the first `blinding_point` of the
-second route: the `next_blinding_override` field must be used to transmit this
-information.
+Al concatenar dos rutas ciegas generadas por diferentes nodos, el último nodo de la primera ruta necesita conocer el primer `blinding_point` de la segunda ruta: el campo `next_blinding_override` debe usarse para transmitir esta información.
 
-The final recipient must verify that the blinded route is used in the right
-context (e.g. for a specific payment) and was created by them. Otherwise a
-malicious sender could create different blinded routes to all the nodes that
-they suspect could be the real recipient and try them until one accepts the
-message. The recipient can protect against that by storing `E(r)` and the
-context (e.g. a `payment_hash`), and verifying that they match when receiving
-the onion. Otherwise, to avoid additional storage cost, it can put some private
-context information in the `path_id` field (e.g. the `payment_preimage`) and
-verify that when receiving the onion. Note that it's important to use private
-information in that case, that senders cannot have access to.
+El destinatario final debe verificar que la ruta ciega se utiliza en el contexto correcto (por ejemplo, para un pago específico) y que fue creada por él. De lo contrario, un remitente malintencionado podría crear diferentes rutas ciegas a todos los nodos que sospecha que pueden ser el destinatario real y probarlos hasta que uno acepte el mensaje. El destinatario puede protegerse contra eso almacenando 'E(r)' y el contexto (por ejemplo, un 'payment_hash'), y verificando que coincidan al recibir la cebolla. De lo contrario, para evitar costos de almacenamiento adicionales, puede colocar información de contexto privada en el campo `path_id` (por ejemplo, `payment_preimage`) y verificarlo al recibir la cebolla. Tenga en cuenta que es importante utilizar información privada en ese caso, a la que los remitentes no pueden tener acceso.
 
-Whenever the introduction point receives a failure from the blinded route, it
-should add a random delay before forwarding the error. Failures are likely to
-be probing attempts and message timing may help the attacker infer its distance
-to the final recipient.
+Cada vez que el punto de introducción recibe una falla de la ruta oculta, debe agregar un retraso aleatorio antes de reenviar el error. Es probable que las fallas sean intentos de sondeo y la sincronización del mensaje puede ayudar al atacante a inferir su distancia al destinatario final.
 
-The `padding` field can be used to ensure that all `encrypted_data` have the
-same length. It's particularly useful when adding dummy hops at the end of a
-blinded route, to prevent the sender from figuring out which node is the final
-recipient.
+El campo `padding` se puede utilizar para garantizar que todos los `encrypted_data` tengan la misma longitud. Es particularmente útil cuando se agregan saltos ficticios al final de una ruta oculta, para evitar que el remitente descubra qué nodo es el destinatario final.
 
-When route blinding is used for payments, the recipient specifies the fees and
-expiry that blinded nodes should apply to the payment instead of letting the
-sender configure them. The recipient also adds additional constraints to the
-payments that can go through that route to protect against probing attacks that
-would let malicious nodes unblind the identity of the blinded nodes. It should
-set `payment_constraints.max_cltv_expiry` to restrict the lifetime of a blinded
-route and reduce the risk that an intermediate node updates its fees and rejects
-payments (which could be used to unblind nodes inside the route).
+Cuando se utiliza el enmascaramiento de rutas para los pagos, el destinatario especifica las tarifas y el vencimiento que los nodos ocultos deben aplicar al pago en lugar de permitir que el remitente los configure. El destinatario también agrega restricciones adicionales a los pagos que pueden pasar por esa ruta para protegerse contra ataques de sondeo que permitirían que los nodos maliciosos revelaran la identidad de los nodos cegados. Debe configurar `payment_constraints.max_cltv_expiry` para restringir la vida útil de una ruta cegada y reducir el riesgo de que un nodo intermedio actualice sus tarifas y rechace los pagos (lo que podría usarse para desenmascarar los nodos dentro de la ruta).
 
-# Accepting and Forwarding a Payment
+# Aceptar y Reenviar un Pago
 
-Once a node has decoded the payload it either accepts the payment locally, or forwards it to the peer indicated as the next hop in the payload.
+Una vez que un nodo ha decodificado la carga útil, acepta el pago localmente o lo reenvía al par indicado como el siguiente salto en la carga útil.
 
-## Non-strict Forwarding
+## Reenvío No Estricto
 
-A node MAY forward an HTLC along an outgoing channel other than the one
-specified by `short_channel_id`, so long as the receiver has the same node
-public key intended by `short_channel_id`. Thus, if `short_channel_id` connects
-nodes A and B, the HTLC can be forwarded across any channel connecting A and B.
-Failure to adhere will result in the receiver being unable to decrypt the next
-hop in the onion packet.
+Un nodo PUEDE reenviar un HTLC a lo largo de un canal saliente que no sea el especificado por `short_channel_id`, siempre que el receptor tenga la misma clave pública de nodo prevista por `short_channel_id`. Por lo tanto, si `short_channel_id` conecta los nodos A y B, el HTLC se puede reenviar a través de cualquier canal que conecte A y B.
+Si no se adhiere, el receptor no podrá descifrar el siguiente salto en el paquete de cebolla.
 
-### Rationale
+### Racional
 
-In the event that two peers have multiple channels, the downstream node will be
-able to decrypt the next hop payload regardless of which channel the packet is
-sent across.
+En el caso de que dos pares tengan múltiples canales, el nodo descendente podrá descifrar la carga útil del siguiente salto, independientemente del canal a través del cual se envíe el paquete.
 
-Nodes implementing non-strict forwarding are able to make real-time assessments
-of channel bandwidths with a particular peer, and use the channel that is
-locally-optimal. 
+Los nodos que implementan el reenvío no estricto pueden realizar evaluaciones en tiempo real de los anchos de banda del canal con un par en particular y utilizar el canal localmente óptimo.
 
-For example, if the channel specified by `short_channel_id` connecting A and B
-does not have enough bandwidth at forwarding time, then A is able use a
-different channel that does. This can reduce payment latency by preventing the
-HTLC from failing due to bandwidth constraints across `short_channel_id`, only
-to have the sender attempt the same route differing only in the channel between
-A and B.
+Por ejemplo, si el canal especificado por `short_channel_id` que conecta A y B no tiene suficiente ancho de banda en el momento del reenvío, entonces A puede usar un canal diferente que sí lo tenga. Esto puede reducir la latencia de pago al evitar que el HTLC falle debido a restricciones de ancho de banda en `short_channel_id`, solo para que el remitente intente la misma ruta que difiere solo en el canal entre A y B.
 
-Non-strict forwarding allows nodes to make use of private channels connecting
-them to the receiving node, even if the channel is not known in the public
-channel graph.
+El reenvío no estricto permite que los nodos utilicen canales privados que los conectan con el nodo receptor, incluso si el canal no se conoce en el gráfico de canales públicos.
 
-### Recommendation
+### Recomendación
 
-Implementations using non-strict forwarding should consider applying the same
-fee schedule to all channels with the same peer, as senders are likely to select
-the channel which results in the lowest overall cost. Having distinct policies
-may result in the forwarding node accepting fees based on the most optimal fee
-schedule for the sender, even though they are providing aggregate bandwidth
-across all channels with the same peer.
+Las implementaciones que utilizan reenvío no estricto deben considerar aplicar el mismo programa de tarifas a todos los canales con el mismo par, ya que es probable que los remitentes seleccionen el canal que resulte en el costo total más bajo. Tener políticas distintas puede resultar en que el nodo de reenvío acepte tarifas basadas en el programa de tarifas más óptimo para el remitente, aunque proporcionen ancho de banda agregado en todos los canales con el mismo par.
 
-Alternatively, implementations may choose to apply non-strict forwarding only to
-like-policy channels to ensure their expected fee revenue does not deviate by
-using an alternate channel.
+Alternativamente, las implementaciones pueden optar por aplicar el reenvío no estricto solo a los canales de política similar para garantizar que sus ingresos por tarifas esperados no se desvíen al usar un canal alternativo.
 
-## Payload for the Last Node
+## Carga útil para el último nodo
 
-When building the route, the origin node MUST use a payload for
-the final node with the following values:
+Al construir la ruta, el nodo de origen DEBE usar una carga útil para el nodo final con los siguientes valores:
 
-* `payment_secret`: set to the payment secret specified by the recipient (e.g.
-  `payment_secret` from a [BOLT #11](11-payment-encoding.md) payment invoice)
-* `outgoing_cltv_value`: set to the final expiry specified by the recipient (e.g.
-  `min_final_cltv_expiry_delta` from a [BOLT #11](11-payment-encoding.md) payment invoice)
-* `amt_to_forward`: set to the final amount specified by the recipient (e.g. `amount`
-  from a [BOLT #11](11-payment-encoding.md) payment invoice)
+* `payment_secret`: establecido en el secreto de pago especificado por el destinatario (por ejemplo,`payment_secret` de una factura de pago [BOLT #11](11-payment-encoding.md))
+* `outgoing_cltv_value`: establecido en el vencimiento final especificado por el destinatario (por ejemplo, `min_final_cltv_expiry_delta` de una factura de pago [BOLT #11](11-payment-encoding.md))
+* `amt_to_forward`: establecido en el importe final especificado por el destinatario (por ejemplo, `amount` de una factura de pago [BOLT #11](11-payment-encoding.md))
 
-This allows the final node to check these values and return errors if needed,
-but it also eliminates the possibility of probing attacks by the second-to-last
-node. Such attacks could, otherwise, attempt to discover if the receiving peer is the
-last one by re-sending HTLCs with different amounts/expiries.
-The final node will extract its onion payload from the HTLC it has received and
-compare its values against those of the HTLC. See the
-[Returning Errors](#returning-errors) section below for more details.
+Esto permite que el nodo final verifique estos valores y devuelva errores si es necesario, pero también elimina la posibilidad de ataques de sondeo por parte del penúltimo nodo. Dichos ataques podrían, de lo contrario, intentar descubrir si el par receptor es el último al reenviar HTLC con diferentes cantidades/vencimientos.
+El nodo final extraerá su carga útil de cebolla del HTLC que ha recibido y comparará sus valores con los del HTLC. Consulte la sección [Errores devueltos](#returning-errors) a continuación para obtener más detalles.
 
-If not for the above, since it need not forward payments, the final node could
-simply discard its payload.
+Si no fuera por lo anterior, dado que no necesita reenviar pagos, el nodo final podría simplemente descartar su carga útil.
 
-# Shared Secret
+# Secreto compartido
 
-The origin node establishes a shared secret with each hop along the route using
-Elliptic-curve Diffie-Hellman between the sender's ephemeral key at that hop and
-the hop's node ID key. The resulting curve point is serialized to the
-compressed format and hashed using `SHA256`. The hash output is used
-as the 32-byte shared secret.
+El nodo de origen establece un secreto compartido con cada salto a lo largo de la ruta utilizando Diffie-Hellman de curva elíptica entre la clave efímera del remitente en ese salto y la clave de identificación del nodo del salto. El punto de la curva resultante se serializa al
+formato comprimido y hash usando `SHA256`. La salida hash se utiliza como secreto compartido de 32 bytes.
 
-Elliptic-curve Diffie-Hellman (ECDH) is an operation on an EC private key and
-an EC public key that outputs a curve point. For this protocol, the ECDH
-variant implemented in `libsecp256k1` is used, which is defined over the
-`secp256k1` elliptic curve. During packet construction, the sender uses the
-ephemeral private key and the hop's public key as inputs to ECDH, whereas
-during packet forwarding, the hop uses the ephemeral public key and its own
-node ID private key. Because of the properties of ECDH, they will both derive
-the same value.
+El Diffie-Hellman de curva elíptica (ECDH) es una operación en una clave privada EC y una clave pública EC que genera un punto de curva. Para este protocolo se utiliza la variante ECDH implementada en `libsecp256k1`, que se define sobre la curva elíptica `secp256k1`. Durante la construcción del paquete, el remitente usa la clave privada efímera y la clave pública del salto como entradas para ECDH, mientras que durante el reenvío de paquetes, el salto usa la clave pública efímera y su propia clave privada de ID de nodo. Debido a las propiedades de ECDH, ambos obtendrán el mismo valor.
 
-# Blinding Ephemeral Keys
+# Claves efímeras cegadoras
 
-In order to ensure multiple hops along the route cannot be linked by the
-ephemeral public keys they see, the key is blinded at each hop. The blinding is
-done in a deterministic way that allows the sender to compute the
-corresponding blinded private keys during packet construction.
+Para garantizar que los múltiples saltos a lo largo de la ruta no puedan vincularse mediante las claves públicas efímeras que ven, la clave se oculta en cada salto. El ocultamiento se realiza de forma determinista que permite al remitente calcular las claves privadas ocultas correspondientes durante la construcción del paquete.
 
-The blinding of an EC public key is a single scalar multiplication of
-the EC point representing the public key with a 32-byte blinding factor. Due to
-the commutative property of scalar multiplication, the blinded private key is
-the multiplicative product of the input's corresponding private key with the
-same blinding factor.
+El cegamiento de una clave pública EC es una única multiplicación escalar del punto EC que representa la clave pública con un factor de cegamiento de 32 bytes. Debido a la propiedad conmutativa de la multiplicación escalar, la clave privada oculta es el producto multiplicativo de la clave privada correspondiente de la entrada con el mismo factor de ocultación.
 
-The blinding factor itself is computed as a function of the ephemeral public key
-and the 32-byte shared secret. Concretely, it is the `SHA256` hash value of the
-concatenation of the public key serialized in its compressed format and the
-shared secret.
+El propio factor de cegamiento se calcula en función de la clave pública efímera y el secreto compartido de 32 bytes. Concretamente, es el valor hash `SHA256` de la concatenación de la clave pública serializada en su formato comprimido y el secreto compartido.
 
-# Packet Construction
+# Construcción de paquetes
 
-In the following example, it's assumed that a _sending node_ (origin node),
-`n_0`, wants to route a packet to a _receiving node_ (final node), `n_r`.
-First, the sender computes a route `{n_0, n_1, ..., n_{r-1}, n_r}`, where `n_0`
-is the sender itself and `n_r` is the final recipient. All nodes `n_i` and
-`n_{i+1}` MUST be peers in the overlay network route. The sender then gathers the
-public keys for `n_1` to `n_r` and generates a random 32-byte `sessionkey`.
-Optionally, the sender may pass in _associated data_, i.e. data that the
-packet commits to but that is not included in the packet itself. Associated
-data will be included in the HMACs and must match the associated data provided
-during integrity verification at each hop.
+En el siguiente ejemplo, se supone que un _nodo de envío_ (nodo de origen), `n_0`, quiere enrutar un paquete a un _nodo de recepción_ (nodo final), `n_r`.
+Primero, el remitente calcula una ruta `{n_0, n_1, ..., n_{r-1}, n_r}`, donde `n_0` es el propio remitente y `n_r` es el destinatario final. Todos los nodos `n_i` y `n_{i+1}` DEBEN ser pares en la ruta de red superpuesta. Luego, el remitente recopila las claves públicas para `n_1` a `n_r` y genera una `sessionkey` aleatoria de 32 bytes.
+Opcionalmente, el remitente puede pasar _datos asociados_, es decir, datos a los que se compromete el paquete pero que no están incluidos en el paquete en sí. Los datos asociados se incluirán en los HMAC y deben coincidir con los datos asociados proporcionados durante la verificación de integridad en cada salto.
 
-To construct the onion, the sender initializes the ephemeral private key for the
-first hop `ek_1` to the `sessionkey` and derives from it the corresponding
-ephemeral public key `epk_1` by multiplying with the `secp256k1` base point. For
-each of the `k` hops along the route, the sender then iteratively computes the
-shared secret `ss_k` and ephemeral key for the next hop `ek_{k+1}` as follows:
+Para construir la cebolla, el remitente inicializa la clave privada efímera para el primer salto `ek_1` a `sessionkey` y deriva de ella la clave pública efímera correspondiente `epk_1` multiplicándola por el punto base `secp256k1`. Para cada uno de los saltos `k` a lo largo de la ruta, el remitente calcula iterativamente el secreto compartido `ss_k` y la clave efímera para el siguiente salto `ek_{k+1}` de la siguiente manera:
 
- - The sender executes ECDH with the hop's public key and the ephemeral private
- key to obtain a curve point, which is hashed using `SHA256` to produce the
- shared secret `ss_k`.
- - The blinding factor is the `SHA256` hash of the concatenation between the
- ephemeral public key `epk_k` and the shared secret `ss_k`.
- - The ephemeral private key for the next hop `ek_{k+1}` is computed by
- multiplying the current ephemeral private key `ek_k` by the blinding factor.
- - The ephemeral public key for the next hop `epk_{k+1}` is derived from the
- ephemeral private key `ek_{k+1}` by multiplying with the base point.
+ - El remitente ejecuta ECDH con la clave pública del salto y la clave privada efímera para obtener un punto de curva, que se codifica con `SHA256` para producir el secreto compartido `ss_k`.
+ - El factor de cegamiento es el hash `SHA256` de la concatenación entre la clave pública efímera `epk_k` y el secreto compartido `ss_k`.
+ - La clave privada efímera para el siguiente salto `ek_{k+1}` se calcula multiplicando la clave privada efímera actual `ek_k` por el factor de cegamiento.
+ - La clave pública efímera para el siguiente salto `epk_{k+1}` se deriva de la clave privada efímera `ek_{k+1}` multiplicando por el punto base.
 
-Once the sender has all the required information above, it can construct the
-packet. Constructing a packet routed over `r` hops requires `r` 32-byte
-ephemeral public keys, `r` 32-byte shared secrets, `r` 32-byte blinding factors,
-and `r` variable length `hop_payload` payloads.
-The construction returns a single 1366-byte packet along with the first receiving peer's address.
+Una vez que el remitente tiene toda la información requerida arriba, puede construir el paquete. La construcción de un paquete enrutado sobre saltos `r` requiere claves públicas efímeras `r` de 32 bytes, secretos compartidos `r` de 32 bytes, factores de cegamiento `r` de 32 bytes y cargas útiles `hop_payload` de longitud variable `r`.
+La construcción devuelve un solo paquete de 1366 bytes junto con la dirección del primer par receptor.
 
-The packet construction is performed in the reverse order of the route, i.e.
-the last hop's operations are applied first.
+La construcción del paquete se realiza en el orden inverso de la ruta, es decir, las operaciones del último salto se aplican primero.
 
-The packet is initialized with 1300 _random_ bytes derived from a CSPRNG
-(ChaCha20). The _pad_ key referenced above is used to extract additional random
-bytes from a ChaCha20 stream, using it as a CSPRNG for this purpose.  Once the
-`paddingKey` has been obtained, ChaCha20 is used with an all zero nonce, to
-generate 1300 random bytes. Those random bytes are then used as the starting
-state of the mix-header to be created.
+El paquete se inicializa con 1300 _random_ bytes derivados de un CSPRNG (ChaCha20). La tecla _pad_ a la que se hace referencia anteriormente se usa para extraer bytes aleatorios adicionales de un flujo de ChaCha20, usándolo como un CSPRNG para este propósito. Una vez que se ha obtenido la `paddingKey`, se usa ChaCha20 con un nonce todo cero, para generar 1300 bytes aleatorios. Esos bytes aleatorios luego se usan como el estado inicial del encabezado de mezcla que se creará.
 
-A filler is generated (see [Filler Generation](#filler-generation)) using the
-shared secret.
+Se genera un relleno (ver [Generación de relleno](#filler-generation)) utilizando el secreto compartido.
 
-For each hop in the route, in reverse order, the sender applies the
-following operations:
+Para cada salto en la ruta, en orden inverso, el remitente aplica las siguientes operaciones:
 
- - The _rho_-key and _mu_-key are generated using the hop's shared secret.
- - `shift_size` is defined as the length of the `hop_payload` plus the bigsize encoding of the length and the length of that HMAC. Thus if the payload length is `l` then the `shift_size` is `1 + l + 32` for `l < 253`, otherwise `3 + l + 32` due to the bigsize encoding of `l`.
- - The `hop_payload` field is right-shifted by `shift_size` bytes, discarding the last `shift_size`
- bytes that exceed its 1300-byte size.
- - The bigsize-serialized length, serialized `hop_payload` and `hmac` are copied into the following `shift_size` bytes.
- - The _rho_-key is used to generate 1300 bytes of pseudo-random byte stream
- which is then applied, with `XOR`, to the `hop_payloads` field.
- - If this is the last hop, i.e. the first iteration, then the tail of the
- `hop_payloads` field is overwritten with the routing information `filler`.
- - The next HMAC is computed (with the _mu_-key as HMAC-key) over the
- concatenated `hop_payloads` and associated data.
+ - La clave _rho_ y la clave _mu_ se generan utilizando el secreto compartido del salto.
+ - `shift_size` se define como la longitud de `hop_payload` más la codificación de tamaño grande de la longitud y la longitud de ese HMAC. Por lo tanto, si la longitud de la carga útil es `l`, `shift_size` es `1 + l + 32` para `l < 253`; de lo contrario, `3 + l + 32` debido a la codificación de tamaño grande de `l`.
+ - El campo `hop_payload` se desplaza a la derecha en bytes `shift_size`, descartando los últimos bytes `shift_size` que superan su tamaño de 1300 bytes.
+ - La longitud serializada de tamaño grande, `hop_payload` y `hmac` serializados se copian en los siguientes bytes `shift_size`.
+ - La clave _rho_ se usa para generar 1300 bytes de flujo de bytes pseudoaleatorios que luego se aplica, con `XOR`, al campo `hop_payloads`.
+ - Si este es el último salto, es decir, la primera iteración, la parte final del campo `hop_payloads` se sobrescribe con la información de enrutamiento `filler`.
+ - El siguiente HMAC se calcula (con la clave _mu_ como clave HMAC) sobre las `hop_payloads` concatenadas y los datos asociados.
 
-The resulting final HMAC value is the HMAC that will be used by the first
-receiving peer in the route.
+El valor HMAC final resultante es el HMAC que utilizará el primer par receptor en la ruta.
 
-The packet generation returns a serialized packet that contains the `version`
-byte, the ephemeral pubkey for the first hop, the HMAC for the first hop, and
-the obfuscated `hop_payloads`.
+La generación de paquetes devuelve un paquete serializado que contiene el byte de 'versión', la clave pública efímera para el primer salto, el HMAC para el primer salto y los 'hop_payloads' ofuscados.
 
-The following Go code is an example implementation of the packet construction:
+El siguiente código Go es un ejemplo de implementación de la construcción del paquete:
 
 ```Go
 func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey,
@@ -772,20 +557,20 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 	numHops := len(paymentPath)
 	hopSharedSecrets := make([][sha256.Size]byte, numHops)
 
-	// Initialize ephemeral key for the first hop to the session key.
+	// Inicialice la clave efímera para el primer salto a la clave de sesión.
 	var ephemeralKey big.Int
 	ephemeralKey.Set(sessionKey.D)
 
 	for i := 0; i < numHops; i++ {
-		// Perform ECDH and hash the result.
+		// Realice ECDH y haga un hash del resultado.
 		ecdhResult := scalarMult(paymentPath[i], ephemeralKey)
 		hopSharedSecrets[i] = sha256.Sum256(ecdhResult.SerializeCompressed())
 
-		// Derive ephemeral public key from private key.
+		// Derivar clave pública efímera de clave privada.
 		ephemeralPrivKey := btcec.PrivKeyFromBytes(btcec.S256(), ephemeralKey.Bytes())
 		ephemeralPubKey := ephemeralPrivKey.PubKey()
 
-		// Compute blinding factor.
+		// Calcular el factor de cegamiento.
 		sha := sha256.New()
 		sha.Write(ephemeralPubKey.SerializeCompressed())
 		sha.Write(hopSharedSecrets[i])
@@ -793,33 +578,33 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 		var blindingFactor big.Int
 		blindingFactor.SetBytes(sha.Sum(nil))
 
-		// Blind ephemeral key for next hop.
+		// Clave ciega efímera para el próximo salto.
 		ephemeralKey.Mul(&ephemeralKey, &blindingFactor)
 		ephemeralKey.Mod(&ephemeralKey, btcec.S256().Params().N)
 	}
 
-	// Generate the padding, called "filler strings" in the paper.
+	// Genere el relleno, llamado 'cadenas de relleno' en el papel.
 	filler := generateHeaderPadding("rho", numHops, hopDataSize, hopSharedSecrets)
 
-	// Allocate and initialize fields to zero-filled slices
+	// Asignar e inicializar campos a sectores llenos de ceros
 	var mixHeader [routingInfoSize]byte
 	var nextHmac [hmacSize]byte
         
-        // Our starting packet needs to be filled out with random bytes, we
-        // generate some determinstically using the session private key.
+        // Nuestro paquete inicial debe completarse con bytes aleatorios,
+        // generar algunos de forma determinista utilizando la clave privada de la sesión.
         paddingKey := generateKey("pad", sessionKey.Serialize()
         paddingBytes := generateCipherStream(paddingKey, routingInfoSize)
         copy(mixHeader[:], paddingBytes)
 
-	// Compute the routing information for each hop along with a
-	// MAC of the routing information using the shared key for that hop.
+  // Calcular la información de enrutamiento para cada salto junto con un
+  // MAC de la información de enrutamiento usando la clave compartida para ese salto.
 	for i := numHops - 1; i >= 0; i-- {
 		rhoKey := generateKey("rho", hopSharedSecrets[i])
 		muKey := generateKey("mu", hopSharedSecrets[i])
 
 		hopsData[i].HMAC = nextHmac
 
-		// Shift and obfuscate routing information
+		// Cambiar y ofuscar la información de enrutamiento
 		streamBytes := generateCipherStream(rhoKey, numStreamBytes)
 
 		rightShift(mixHeader[:], hopDataSize)
@@ -828,7 +613,7 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 		copy(mixHeader[:], buf.Bytes())
 		xor(mixHeader[:], mixHeader[:], streamBytes[:routingInfoSize])
 
-		// These need to be overwritten, so every node generates a correct padding
+		// Estos deben sobrescribirse, por lo que cada nodo genera un relleno correcto
 		if i == numHops-1 {
 			copy(mixHeader[len(mixHeader)-len(filler):], filler)
 		}
@@ -847,295 +632,223 @@ func NewOnionPacket(paymentPath []*btcec.PublicKey, sessionKey *btcec.PrivateKey
 }
 ```
 
-# Packet Forwarding
+# Reenvío de paquetes
 
-This specification is limited to `version` `0` packets; the structure
-of future versions may change.
+Esta especificación está limitada a paquetes `versión` `0`; la estructura de versiones futuras puede cambiar.
 
-Upon receiving a packet, a processing node compares the version byte of the
-packet with its own supported versions and aborts the connection if the packet
-specifies a version number that it doesn't support.
-For packets with supported version numbers, the processing node first parses the
-packet into its individual fields.
+Al recibir un paquete, un nodo de procesamiento compara el byte de la versión del paquete con sus propias versiones admitidas y cancela la conexión si el paquete especifica un número de versión que no admite.
+Para paquetes con números de versión admitidos, el nodo de procesamiento primero analiza el paquete en sus campos individuales.
 
-Next, the processing node computes the shared secret using the private key
-corresponding to its own public key and the ephemeral key from the packet, as
-described in [Shared Secret](#shared-secret).
+A continuación, el nodo de procesamiento calcula el secreto compartido utilizando la clave privada correspondiente a su propia clave pública y la clave efímera del paquete, como se describe en [Secreto compartido](#secreto-compartido).
 
-The above requirements prevent any hop along the route from retrying a payment
-multiple times, in an attempt to track a payment's progress via traffic
-analysis. Note that disabling such probing could be accomplished using a log of
-previous shared secrets or HMACs, which could be forgotten once the HTLC would
-not be accepted anyway (i.e. after `outgoing_cltv_value` has passed). Such a log
-may use a probabilistic data structure, but it MUST rate-limit commitments as
-necessary, in order to constrain the worst-case storage requirements or false
-positives of this log.
+Los requisitos anteriores evitan que cualquier salto a lo largo de la ruta vuelva a intentar un pago varias veces, en un intento de rastrear el progreso de un pago a través del análisis de tráfico. Tenga en cuenta que la desactivación de dicho sondeo podría lograrse utilizando un registro de secretos compartidos anteriores o HMAC, que podrían olvidarse una vez que el HTLC no se aceptara de todos modos (es decir, después de que haya pasado `outgoing_cltv_value`). Tal registro puede usar una estructura de datos probabilísticos, pero DEBE limitar la tasa de compromisos como
+necesario, para restringir los requisitos de almacenamiento en el peor de los casos o los falsos positivos de este registro.
 
-Next, the processing node uses the shared secret to compute a _mu_-key, which it
-in turn uses to compute the HMAC of the `hop_payloads`. The resulting HMAC is then
-compared against the packet's HMAC.
+A continuación, el nodo de procesamiento utiliza el secreto compartido para calcular una clave _mu_, que a su vez utiliza para calcular el HMAC de los `hop_payloads`. Luego, el HMAC resultante se compara con el HMAC del paquete.
 
-Comparison of the computed HMAC and the packet's HMAC MUST be
-time-constant to avoid information leaks.
+La comparación del HMAC calculado y el HMAC del paquete DEBE ser constante en el tiempo para evitar fugas de información.
 
-At this point, the processing node can generate a _rho_-key.
+En este punto, el nodo de procesamiento puede generar una clave _rho_.
 
-The routing information is then deobfuscated, and the information about the
-next hop is extracted.
-To do so, the processing node copies the `hop_payloads` field, appends 1300 `0x00`-bytes,
-generates `2*1300` pseudo-random bytes (using the _rho_-key), and applies the result, using `XOR`, to the copy of the `hop_payloads`.
-The first few bytes correspond to the bigsize-encoded length `l` of the `hop_payload`, followed by `l` bytes of the resulting routing information become the `hop_payload`, and the 32 byte HMAC.
-The next 1300 bytes are the `hop_payloads` for the outgoing packet.
+Luego, la información de enrutamiento se desofusca y se extrae la información sobre el siguiente salto.
+Para hacerlo, el nodo de procesamiento copia el campo `hop_payloads`, agrega 1300 bytes `0x00`, genera `2*1300` bytes pseudoaleatorios (usando la tecla _rho_) y aplica el resultado usando `XOR`, a la copia de `hop_payloads`.
+Los primeros bytes corresponden a la longitud codificada en tamaño grande `l` de `hop_payload`, seguidos de `l` bytes de la información de enrutamiento resultante que se convierte en `hop_payload` y el HMAC de 32 bytes.
+Los siguientes 1300 bytes son `hop_payloads` para el paquete saliente.
 
-A special `hmac` value of 32 `0x00`-bytes indicates that the currently processing hop is the intended recipient and that the packet should not be forwarded.
+Un valor `hmac` especial de 32 bytes `0x00` indica que el salto de procesamiento actual es el destinatario previsto y que el paquete no debe reenviarse.
 
-If the HMAC does not indicate route termination, and if the next hop is a peer of the
-processing node; then the new packet is assembled. Packet assembly is accomplished
-by blinding the ephemeral key with the processing node's public key, along with the
-shared secret, and by serializing the `hop_payloads`.
-The resulting packet is then forwarded to the addressed peer.
+Si el HMAC no indica la terminación de la ruta y si el siguiente salto es un par del nodo de procesamiento; luego se ensambla el nuevo paquete. El ensamblaje del paquete se logra ocultando la clave efímera con la clave pública del nodo de procesamiento, junto con el secreto compartido, y serializando los `hop_payloads`.
+Luego, el paquete resultante se reenvía al par direccionado.
 
-## Requirements
+## Requisitos
 
-The processing node:
-  - if the ephemeral public key is NOT on the `secp256k1` curve:
-    - MUST abort processing the packet.
-    - MUST report a route failure to the origin node.
-  - if the packet has previously been forwarded or locally redeemed, i.e. the
-  packet contains duplicate routing information to a previously received packet:
-    - if preimage is known:
-      - MAY immediately redeem the HTLC using the preimage.
-    - otherwise:
-      - MUST abort processing and report a route failure.
-  - if the computed HMAC and the packet's HMAC differ:
-    - MUST abort processing.
-    - MUST report a route failure.
-  - if the `realm` is unknown:
-    - MUST drop the packet.
-    - MUST signal a route failure.
-  - MUST address the packet to another peer that is its direct neighbor.
-  - if the processing node does not have a peer with the matching address:
-    - MUST drop the packet.
-    - MUST signal a route failure.
+El nodo de procesamiento:
+  - si la clave pública efímera NO está en la curva `secp256k1`:
+    - DEBE abortar el procesamiento del paquete.
+    - DEBE informar una falla de ruta al nodo de origen.
+  - si el paquete ha sido previamente reenviado o redimido localmente, es decir, el
+  El paquete contiene información de enrutamiento duplicada a un paquete recibido previamente:
+    - si se conoce la preimagen:
+      - PUEDE canjear inmediatamente el HTLC usando la preimagen.
+    - de lo contrario:
+      - DEBE abortar el procesamiento y reportar una falla en la ruta.
+  - si el HMAC calculado y el HMAC del paquete difieren:
+    - DEBE abortar el procesamiento.
+    - DEBE informar una falla en la ruta.
+  - si el `realm` es desconocido:
+    - DEBE soltar el paquete.
+    - DEBE señalizar un fallo de ruta.
+  - DEBE direccionar el paquete a otro par que sea su vecino directo.
+  - si el nodo de procesamiento no tiene un par con la dirección coincidente:
+    - DEBE soltar el paquete.
+    - DEBE señalizar un fallo de ruta.
 
 
-# Filler Generation
+# Generación de relleno
 
-Upon receiving a packet, the processing node extracts the information destined
-for it from the route information and the per-hop payload.
-The extraction is done by deobfuscating and left-shifting the field.
-This would make the field shorter at each hop, allowing an attacker to deduce the
-route length. For this reason, the field is pre-padded before forwarding.
-Since the padding is part of the HMAC, the origin node will have to pre-generate an
-identical padding (to that which each hop will generate) in order to compute the
-HMACs correctly for each hop.
-The filler is also used to pad the field-length, in the case that the selected
-route is shorter than 1300 bytes.
+Al recibir un paquete, el nodo de procesamiento extrae la información destinada a él de la información de la ruta y la carga útil por salto.
+La extracción se realiza desofuscando y desplazando el campo a la izquierda.
+Esto haría que el campo fuera más corto en cada salto, lo que permitiría a un atacante deducir la longitud de la ruta. Por este motivo, el campo se rellena previamente antes de reenviarlo.
+Dado que el relleno es parte del HMAC, el nodo de origen tendrá que generar previamente un relleno idéntico (al que generará cada salto) para calcular los HMAC correctamente para cada salto.
+El relleno también se usa para rellenar la longitud del campo, en el caso de que la ruta seleccionada sea más corta que 1300 bytes.
 
-Before deobfuscating the `hop_payloads`, the processing node pads it with 1300
-`0x00`-bytes, such that the total length is `2*1300`.
-It then generates the pseudo-random byte stream, of matching length, and applies
-it with `XOR` to the `hop_payloads`.
-This deobfuscates the information destined for it, while simultaneously
-obfuscating the added `0x00`-bytes at the end.
+Antes de desofuscar los `hop_payloads`, el nodo de procesamiento lo rellena con 1300 bytes `0x00`, de modo que la longitud total es `2*1300`.
+Luego genera el flujo de bytes pseudoaleatorios, de longitud coincidente, y lo aplica con `XOR` a `hop_payloads`.
+Esto desofusca la información destinada a él, mientras que simultáneamente ofusca los bytes `0x00` agregados al final.
 
-In order to compute the correct HMAC, the origin node has to pre-generate the
-`hop_payloads` for each hop, including the incrementally obfuscated padding added
-by each hop. This incrementally obfuscated padding is referred to as the
-`filler`.
+Para calcular el HMAC correcto, el nodo de origen tiene que generar previamente las `hop_payloads` para cada salto, incluido el relleno ofuscado incremental agregado por cada salto. Este relleno incrementalmente ofuscado se conoce como `filler`.
 
-The following example code shows how the filler is generated in Go:
+El siguiente código de ejemplo muestra cómo se genera el relleno en Go:
 
 ```Go
 func generateFiller(key string, numHops int, hopSize int, sharedSecrets [][sharedSecretSize]byte) []byte {
 	fillerSize := uint((numMaxHops + 1) * hopSize)
 	filler := make([]byte, fillerSize)
 
-	// The last hop does not obfuscate, it's not forwarding anymore.
+	// El último salto no ofusca, ya no está reenviando.
 	for i := 0; i < numHops-1; i++ {
 
-		// Left-shift the field
+		// Desplazar a la izquierda el campo
 		copy(filler[:], filler[hopSize:])
 
-		// Zero-fill the last hop
+		// Llenar con cero el último salto
 		copy(filler[len(filler)-hopSize:], bytes.Repeat([]byte{0x00}, hopSize))
 
 		// Generate pseudo-random byte stream
 		streamKey := generateKey(key, sharedSecrets[i])
 		streamBytes := generateCipherStream(streamKey, fillerSize)
 
-		// Obfuscate
+		// Ofuscar
 		xor(filler, filler, streamBytes)
 	}
 
-	// Cut filler down to the correct length (numHops+1)*hopSize
-	// bytes will be prepended by the packet generation.
+  // Cortar el relleno a la longitud correcta (numHops+1)*hopSize
+  // bytes serán precedidos por la generación del paquete.
 	return filler[(numMaxHops-numHops+2)*hopSize:]
 }
 ```
 
-Note that this example implementation is for demonstration purposes only; the
-`filler` can be generated much more efficiently.
-The last hop need not obfuscate the `filler`, since it won't forward the packet
-any further and thus need not extract an HMAC either.
+Tenga en cuenta que esta implementación de ejemplo es solo para fines de demostración; el `filler` se puede generar de manera mucho más eficiente.
+El último salto no necesita ofuscar el `filler`, ya que no reenviará más el paquete y, por lo tanto, tampoco necesitará extraer un HMAC.
 
-# Returning Errors
+# Devolviendo errores
 
-The onion routing protocol includes a simple mechanism for returning encrypted
-error messages to the origin node.
-The returned error messages may be failures reported by any hop, including the
-final node.
-The format of the forward packet is not usable for the return path, since no hop
-besides the origin has access to the information required for its generation.
-Note that these error messages are not reliable, as they are not placed on-chain
-due to the possibility of hop failure.
+El protocolo de enrutamiento de cebolla incluye un mecanismo simple para devolver mensajes de error cifrados al nodo de origen.
+Los mensajes de error devueltos pueden ser fallas informadas por cualquier salto, incluido el nodo final.
+El formato del paquete de reenvío no se puede utilizar para la ruta de retorno, ya que ningún salto además del origen tiene acceso a la información requerida para su generación.
+Tenga en cuenta que estos mensajes de error no son confiables, ya que no se colocan en la cadena debido a la posibilidad de falla del salto.
 
-Intermediate hops store the shared secret from the forward path and reuse it to
-obfuscate any corresponding return packet during each hop.
-In addition, each node locally stores data regarding its own sending peer in the
-route, so it knows where to return-forward any eventual return packets.
-The node generating the error message (_erring node_) builds a return packet
-consisting of the following fields:
+Los saltos intermedios almacenan el secreto compartido de la ruta de reenvío y lo reutilizan para ofuscar cualquier paquete de retorno correspondiente durante cada salto.
+Además, cada nodo almacena localmente datos sobre su propio par de envío en la ruta, por lo que sabe adónde devolver-reenviar cualquier paquete de retorno eventual.
+El nodo que genera el mensaje de error (_erring node_) crea un paquete de retorno que consta de los siguientes campos:
 
-1. data:
+1. datos:
    * [`32*byte`:`hmac`]
-   * [`u16`:`failure_len`]
+   * [`u16`:`fracaso_len`]
    * [`failure_len*byte`:`failuremsg`]
    * [`u16`:`pad_len`]
    * [`pad_len*byte`:`pad`]
 
-Where `hmac` is an HMAC authenticating the remainder of the packet, with a key
-generated using the above process, with key type `um`, `failuremsg` as defined
-below, and `pad` as the extra bytes used to conceal length.
+Donde `hmac` es un HMAC que autentica el resto del paquete, con una clave generada utilizando el proceso anterior, con el tipo de clave `um`, `failuremsg` como se define a continuación, y `pad` como los bytes adicionales utilizados para ocultar la longitud.
 
-The erring node then generates a new key, using the key type `ammag`.
-This key is then used to generate a pseudo-random stream, which is in turn
-applied to the packet using `XOR`.
+El nodo erróneo luego genera una nueva clave, usando el tipo de clave `ammag`.
+Esta clave luego se usa para generar un flujo pseudoaleatorio, que a su vez se aplica al paquete usando `XOR`.
 
-The obfuscation step is repeated by every hop along the return path.
-Upon receiving a return packet, each hop generates its `ammag`, generates the
-pseudo-random byte stream, and applies the result to the return packet before
-return-forwarding it.
+El paso de ofuscación se repite en cada salto a lo largo de la ruta de retorno.
+Al recibir un paquete de retorno, cada salto genera su `ammag`, genera el flujo de bytes pseudoaleatorios y aplica el resultado al paquete de retorno antes de devolverlo y reenviarlo.
 
-The origin node is able to detect that it's the intended final recipient of the
-return message, because of course, it was the originator of the corresponding
-forward packet.
-When an origin node receives an error message matching a transfer it initiated
-(i.e. it cannot return-forward the error any further) it generates the `ammag`
-and `um` keys for each hop in the route.
-It then iteratively decrypts the error message, using each hop's `ammag`
-key, and computes the HMAC, using each hop's `um` key.
-The origin node can detect the sender of the error message by matching the
-`hmac` field with the computed HMAC.
+El nodo de origen puede detectar que es el destinatario final previsto del mensaje de retorno porque, por supuesto, fue el originador del paquete de reenvío correspondiente.
+Cuando un nodo de origen recibe un mensaje de error que coincide con una transferencia que inició (es decir, no puede volver a enviar el error más), genera las claves `ammag` y `um` para cada salto en la ruta.
+Luego descifra iterativamente el mensaje de error, usando la clave `ammag` de cada salto, y calcula el HMAC, usando la clave `um` de cada salto.
+El nodo de origen puede detectar al remitente del mensaje de error haciendo coincidir el campo `hmac` con el HMAC calculado.
 
-The association between the forward and return packets is handled outside of
-this onion routing protocol, e.g. via association with an HTLC in a payment
-channel.
+La asociación entre los paquetes de reenvío y retorno se maneja fuera de este protocolo de enrutamiento de cebolla, p.e. mediante asociación con un HTLC en un canal de pago.
 
-Error handling for HTLCs with `blinding_point` is particularly fraught,
-since differences in implementations (or versions) may be leveraged to
-de-anonymize elements of the blinded path. Thus the decision turn every
-error into `invalid_onion_blinding` which will be converted to a normal
-onion error by the introduction point.
+El manejo de errores para los HTLC con `blinding_point` es particularmente tenso, ya que las diferencias en las implementaciones (o versiones) pueden aprovecharse para eliminar el anonimato de los elementos de la ruta ciega. Por lo tanto, la decisión convierte cada error en `invalid_onion_blinding` que se convertirá en un error de cebolla normal en el punto de introducción.
 
-### Requirements
+### Requisitos
 
-The _erring node_:
-  - MUST set `pad` such that the `failure_len` plus `pad_len` is at least 256.
-  - SHOULD set `pad` such that the `failure_len` plus `pad_len` is equal to
-    256. Deviating from this may cause older nodes to be unable to parse the
-    return message.
+El _nodo erróneo_:
+  - DEBE configurar `pad` de modo que `failure_len` más `pad_len` sea al menos 256.
+  - DEBERÍA configurar `pad` de modo que `failure_len` más `pad_len` sea igual a 256. Si se desvía de esto, es posible que los nodos más antiguos no puedan analizar el mensaje de retorno.
 
-The _origin node_:
-  - once the return message has been decrypted:
-    - SHOULD store a copy of the message.
-    - SHOULD continue decrypting, until the loop has been repeated 20 times.
-    - SHOULD use constant `ammag` and `um` keys to obfuscate the route length.
+El _nodo de origen_:
+  - una vez descifrado el mensaje de respuesta:
+    - DEBE almacenar una copia del mensaje.
+    - DEBE continuar descifrando, hasta que el ciclo se haya repetido 20 veces.
+    - DEBE usar las claves constantes `ammag` y `um` para ofuscar la longitud de la ruta.
 
-## Failure Messages
+## Mensajes de error
 
-The failure message encapsulated in `failuremsg` has an identical format as
-a normal message: a 2-byte type `failure_code` followed by data applicable
-to that type. The message data is followed by an optional
-[TLV stream](01-messaging.md#type-length-value-format).
+El mensaje de error encapsulado en `failuremsg` tiene un formato idéntico al de un mensaje normal: un tipo `failure_code` de 2 bytes seguido de los datos aplicables a ese tipo. Los datos del mensaje van seguidos de un [flujo TLV] opcional (01-messaging.md#type-length-value-format).
 
-Below is a list of the currently supported `failure_code`
-values, followed by their use case requirements.
+A continuación se muestra una lista de los valores de `failure_code` admitidos actualmente, seguidos de los requisitos de su caso de uso.
 
-Notice that the `failure_code`s are not of the same type as other message types,
-defined in other BOLTs, as they are not sent directly on the transport layer
-but are instead wrapped inside return packets.
-The numeric values for the `failure_code` may therefore reuse values, that are
-also assigned to other message types, without any danger of causing collisions.
+Tenga en cuenta que los `failure_code`s no son del mismo tipo que otros tipos de mensajes, definidos en otros BOLT, ya que no se envían directamente a la capa de transporte, sino que se envuelven dentro de los paquetes de retorno.
+Los valores numéricos para `failure_code` pueden por lo tanto reutilizar valores, que también están asignados a otros tipos de mensajes, sin peligro de causar colisiones.
 
-The top byte of `failure_code` can be read as a set of flags:
-* 0x8000 (BADONION): unparsable onion encrypted by sending peer
-* 0x4000 (PERM): permanent failure (otherwise transient)
-* 0x2000 (NODE): node failure (otherwise channel)
-* 0x1000 (UPDATE): new channel update enclosed
+El byte superior de `failure_code` se puede leer como un conjunto de banderas:
+* 0x8000 (BADONION): cebolla no analizable cifrada por el envío del par
+* 0x4000 (PERM): falla permanente (de lo contrario transitorio)
+* 0x2000 (NODE): falla de nodo (de lo contrario, canal)
+* 0x1000 (ACTUALIZAR): nueva actualización de canal adjunta
 
-Please note that the `channel_update` field is mandatory in messages whose
-`failure_code` includes the `UPDATE` flag. It is encoded *with* the message
-type prefix, i.e. it should always start with `0x0102`. Note that historical
-lightning implementations serialized this without the `0x0102` message type.
+Tenga en cuenta que el campo `channel_update` es obligatorio en los mensajes cuyo `failure_code` incluye el indicador `UPDATE`. Está codificado *con* el prefijo del tipo de mensaje, es decir, siempre debe comenzar con `0x0102`. Tenga en cuenta que las implementaciones históricas de Lightning serializaron esto sin el tipo de mensaje `0x0102`.
 
-The following `failure_code`s are defined:
+Se definen los siguientes `failure_code`s:
 
 1. type: PERM|1 (`invalid_realm`)
 
-The `realm` byte was not understood by the processing node.
+El byte `realm` no fue entendido por el nodo de procesamiento.
 
 1. type: NODE|2 (`temporary_node_failure`)
 
-General temporary failure of the processing node.
+Fallo temporal general del nodo de procesamiento.
 
 1. type: PERM|NODE|2 (`permanent_node_failure`)
 
-General permanent failure of the processing node.
+Fallo general permanente del nodo de procesamiento.
 
 1. type: PERM|NODE|3 (`required_node_feature_missing`)
 
-The processing node has a required feature which was not in this onion.
+El nodo de procesamiento tiene una característica requerida que no estaba en esta cebolla.
 
 1. type: BADONION|PERM|4 (`invalid_onion_version`)
 2. data:
    * [`sha256`:`sha256_of_onion`]
 
-The `version` byte was not understood by the processing node.
+El nodo de procesamiento no entendió el byte `version`.
 
 1. type: BADONION|PERM|5 (`invalid_onion_hmac`)
 2. data:
    * [`sha256`:`sha256_of_onion`]
 
-The HMAC of the onion was incorrect when it reached the processing node.
+El HMAC de la cebolla era incorrecto cuando llegó al nodo de procesamiento.
 
 1. type: BADONION|PERM|6 (`invalid_onion_key`)
 2. data:
    * [`sha256`:`sha256_of_onion`]
 
-The ephemeral key was unparsable by the processing node.
+El nodo de procesamiento no pudo analizar la clave efímera.
 
 1. type: UPDATE|7 (`temporary_channel_failure`)
 2. data:
    * [`u16`:`len`]
    * [`len*byte`:`channel_update`]
 
-The channel from the processing node was unable to handle this HTLC,
-but may be able to handle it, or others, later.
+El canal del nodo de procesamiento no pudo manejar este HTLC, pero es posible que pueda manejarlo, u otros, más adelante.
 
 1. type: PERM|8 (`permanent_channel_failure`)
 
-The channel from the processing node is unable to handle any HTLCs.
+El canal del nodo de procesamiento no puede manejar ningún HTLC.
 
 1. type: PERM|9 (`required_channel_feature_missing`)
 
-The channel from the processing node requires features not present in
-the onion.
+El canal del nodo de procesamiento requiere características que no están presentes en la cebolla.
 
 1. type: PERM|10 (`unknown_next_peer`)
 
-The onion specified a `short_channel_id` which doesn't match any
-leading from the processing node.
+La cebolla especificó un `short_channel_id` que no coincide con ningún encabezado del nodo de procesamiento.
 
 1. type: UPDATE|11 (`amount_below_minimum`)
 2. data:
@@ -1143,8 +856,7 @@ leading from the processing node.
    * [`u16`:`len`]
    * [`len*byte`:`channel_update`]
 
-The HTLC amount was below the `htlc_minimum_msat` of the channel from
-the processing node.
+La cantidad de HTLC estaba por debajo del `htlc_minimum_msat` del canal del nodo de procesamiento.
 
 1. type: UPDATE|12 (`fee_insufficient`)
 2. data:
@@ -1152,8 +864,7 @@ the processing node.
    * [`u16`:`len`]
    * [`len*byte`:`channel_update`]
 
-The fee amount was below that required by the channel from the
-processing node.
+El monto de la tarifa estaba por debajo del requerido por el canal del nodo de procesamiento.
 
 1. type: UPDATE|13 (`incorrect_cltv_expiry`)
 2. data:
@@ -1161,9 +872,7 @@ processing node.
    * [`u16`:`len`]
    * [`len*byte`:`channel_update`]
 
-The `cltv_expiry` does not comply with the `cltv_expiry_delta` required by
-the channel from the processing node: it does not satisfy the following
-requirement:
+El `cltv_expiry` no cumple con el `cltv_expiry_delta` requerido por el canal desde el nodo de procesamiento: no cumple con el siguiente requisito:
 
         cltv_expiry - cltv_expiry_delta >= outgoing_cltv_value
 
@@ -1172,53 +881,34 @@ requirement:
    * [`u16`:`len`]
    * [`len*byte`:`channel_update`]
 
-The CLTV expiry is too close to the current block height for safe
-handling by the processing node.
+El vencimiento de CLTV está demasiado cerca de la altura del bloque actual para que el nodo de procesamiento lo manipule de manera segura.
 
 1. type: PERM|15 (`incorrect_or_unknown_payment_details`)
 2. data:
    * [`u64`:`htlc_msat`]
    * [`u32`:`height`]
 
-The `payment_hash` is unknown to the final node, the `payment_secret` doesn't
-match the `payment_hash`, the amount for that `payment_hash` is incorrect,
-the CLTV expiry of the htlc is too close to the current block height for safe
-handling or `payment_metadata` isn't present while it should be.
+El `payment_hash` es desconocido para el nodo final, el `payment_secret` no coincide con el `payment_hash`, la cantidad para ese `payment_hash` es incorrecta, la caducidad CLTV del htlc está demasiado cerca de la altura del bloque actual por seguridad el manejo o `payment_metadata` no está presente cuando debería estarlo.
 
-The `htlc_msat` parameter is superfluous, but left in for backwards
-compatibility. The value of `htlc_msat` always matches the amount specified in
-the final hop onion payload. It therefore does not have any informative value to
-the sender. A penultimate hop sending a different amount or expiry for the htlc
-is handled through `final_incorrect_cltv_expiry` and
-`final_incorrect_htlc_amount`.
+El parámetro `htlc_msat` es superfluo, pero se dejó por compatibilidad con versiones anteriores. El valor de `htlc_msat` siempre coincide con la cantidad especificada en la carga útil de cebolla de salto final. Por tanto, no tiene ningún valor informativo para el remitente. Un penúltimo salto que envía una cantidad o vencimiento diferente para el htlc se maneja a través de `final_incorrect_cltv_expiry` y `final_incorrect_htlc_amount`.
 
-The `height` parameter is set by the final node to the best known block height
-at the time of receiving the htlc. This can be used by the sender to distinguish
-between sending a payment with the wrong final CLTV expiry and an intermediate
-hop delaying the payment so that the receiver's invoice CLTV delta requirement
-is no longer met.
+El parámetro `height` lo establece el nodo final en la altura de bloque más conocida en el momento de recibir el htlc. El remitente puede usar esto para distinguir entre enviar un pago con el vencimiento final de CLTV incorrecto y un salto intermedio que retrasa el pago para que ya no se cumpla el requisito de delta de CLTV de la factura del receptor.
 
-Note: Originally PERM|16 (`incorrect_payment_amount`) and 17
-(`final_expiry_too_soon`) were used to differentiate incorrect htlc parameters
-from unknown payment hash. Sadly, sending this response allows for probing
-attacks whereby a node which receives an HTLC for forwarding can check guesses
-as to its final destination by sending payments with the same hash but much
-lower values or expiry heights to potential destinations and check the response.
-Care must be taken by implementations to differentiate the previously
-non-permanent case for `final_expiry_too_soon` (17) from the other, permanent
-failures now represented by `incorrect_or_unknown_payment_details` (PERM|15).
+Nota: Originalmente, PERM|16 (`incorrect_payment_amount`) y 17 (`final_expiry_too_soon`) se usaban para diferenciar los parámetros htlc incorrectos del hash de pago desconocido. Lamentablemente, el envío de esta respuesta permite realizar ataques de sondeo en los que un nodo que recibe un HTLC para reenviar puede verificar las conjeturas sobre su destino final mediante el envío de pagos con el mismo hash pero valores mucho más bajos o alturas de vencimiento a destinos potenciales y verificar la respuesta.
+
+Las implementaciones deben tener cuidado para diferenciar el caso anteriormente no permanente para `final_expiry_too_soon` (17) de las otras fallas permanentes ahora representadas por `incorrect_or_unknown_payment_details` (PERM|15).
 
 1. type: 18 (`final_incorrect_cltv_expiry`)
 2. data:
    * [`u32`:`cltv_expiry`]
 
-The CLTV expiry in the HTLC doesn't match the value in the onion.
+El vencimiento de CLTV en el HTLC no coincide con el valor en la cebolla.
 
 1. type: 19 (`final_incorrect_htlc_amount`)
 2. data:
    * [`u64`:`incoming_htlc_amt`]
 
-The amount in the HTLC doesn't match the value in the onion.
+La cantidad en el HTLC no coincide con el valor en la cebolla.
 
 1. type: UPDATE|20 (`channel_disabled`)
 2. data:
@@ -1226,191 +916,160 @@ The amount in the HTLC doesn't match the value in the onion.
    * [`u16`:`len`]
    * [`len*byte`:`channel_update`]
 
-The channel from the processing node has been disabled.
-No flags for `disabled_flags` are currently defined, thus it is currently
-always two zero bytes.
+El canal del nodo de procesamiento ha sido deshabilitado. No hay banderas para `disabled_flags` actualmente definidas, por lo que actualmente siempre son dos cero bytes.
 
 1. type: 21 (`expiry_too_far`)
 
-The CLTV expiry in the HTLC is too far in the future.
+El vencimiento de CLTV en el HTLC está demasiado lejos en el futuro.
 
 1. type: PERM|22 (`invalid_onion_payload`)
 2. data:
    * [`bigsize`:`type`]
    * [`u16`:`offset`]
 
-The decrypted onion per-hop payload was not understood by the processing node
-or is incomplete. If the failure can be narrowed down to a specific tlv type in
-the payload, the erring node may include that `type` and its byte `offset` in
-the decrypted byte stream.
+El nodo de procesamiento no entendió la carga útil de cebolla por salto descifrada o está incompleta. Si la falla se puede reducir a un tipo de tlv específico en la carga útil, el nodo erróneo puede incluir ese 'tipo' y su 'compensación' de bytes en el flujo de bytes descifrado.
 
 1. type: 23 (`mpp_timeout`)
 
-The complete amount of the multi-part payment was not received within a
-reasonable time.
+El monto total del pago de varias partes no se recibió dentro de un tiempo razonable.
 
 1. type: BADONION|PERM|24 (`invalid_onion_blinding`)
 2. data:
    * [`sha256`:`sha256_of_onion`]
 
-An error occurred within the blinded path.
+Ocurrió un error dentro de la ruta ciega.
 
-### Requirements
+### Requisitos
 
-An _erring node_:
-  - if `blinding_point` is set in the incoming `update_add_htlc`:
-    - MUST return an `invalid_onion_blinding` error.
-  - if `current_blinding_point` is set in the onion payload and it is not the
-    final node:
-    - MUST return an `invalid_onion_blinding` error.
-  - otherwise:
-    - MUST select one of the above error codes when creating an error message.
-    - MUST include the appropriate data for that particular error type.
-    - if there is more than one error:
-      - SHOULD select the first error it encounters from the list above.
+Un _nodo erróneo_:
+  - si se establece `blinding_point` en `update_add_htlc` entrante:
+    - DEBE devolver un error `invalid_onion_blinding`.
+  - si se establece `current_blinding_point` en la carga útil de cebolla y no es el nodo final:
+    - DEBE devolver un error `invalid_onion_blinding`.
+  - de lo contrario:
+    - DEBE seleccionar uno de los códigos de error anteriores al crear un mensaje de error.
+    - DEBE incluir los datos apropiados para ese tipo de error en particular.
+    - si hay más de un error:
+      - DEBERÍA seleccionar el primer error que encuentre de la lista anterior.
 
-An _erring node_ MAY:
-  - if the `realm` byte is unknown:
-    - return an `invalid_realm` error.
-  - if the per-hop payload in the onion is invalid (e.g. it is not a valid tlv stream)
-  or is missing required information (e.g. the amount was not specified):
-    - return an `invalid_onion_payload` error.
-  - if an otherwise unspecified transient error occurs for the entire node:
-    - return a `temporary_node_failure` error.
-  - if an otherwise unspecified permanent error occurs for the entire node:
-    - return a `permanent_node_failure` error.
-  - if a node has requirements advertised in its `node_announcement` `features`,
-  which were NOT included in the onion:
-    - return a `required_node_feature_missing` error.
+Un _nodo erróneo_ PUEDE:
+  - si el byte `realm` es desconocido:
+    - devuelve un error `invalid_realm`.
+  - si la carga útil por salto en la cebolla no es válida (por ejemplo, no es una transmisión tlv válida) o falta la información requerida (por ejemplo, no se especificó la cantidad):
+    - devuelve un error `invalid_onion_payload`.
+  - si se produce un error transitorio no especificado en todo el nodo:
+    - devuelve un error `temporal_node_failure`.
+  - si se produce un error permanente no especificado en todo el nodo:
+    - devuelve un error `permanent_node_failure`.
+  - si un nodo tiene requisitos anunciados en sus `node_announcement` `features`, que NO estaban incluidos en la cebolla:
+    - devuelve un error `required_node_feature_missing`.
 
-A _forwarding node_ MUST:
-  - if `blinding_point` is set in the incoming `update_add_htlc`:
-    - return an `invalid_onion_blinding` error.
-  - if `current_blinding_point` is set in the onion payload and it is not the
-    final node:
-    - return an `invalid_onion_blinding` error.
-  - otherwise:
-    - select one of the above error codes when creating an error message.
+Un _nodo de reenvío_ DEBE:
+  - si se establece `blinding_point` en `update_add_htlc` entrante:
+    - devuelve un error `invalid_onion_blinding`.
+  - si se establece `current_blinding_point` en la carga útil de cebolla y no es el nodo final:
+    - devuelve un error `invalid_onion_blinding`.
+  - de lo contrario:
+    - seleccione uno de los códigos de error anteriores al crear un mensaje de error.
 
-A _forwarding node_ MAY, but a _final node_ MUST NOT:
-  - if the onion `version` byte is unknown:
-    - return an `invalid_onion_version` error.
-  - if the onion HMAC is incorrect:
-    - return an `invalid_onion_hmac` error.
-  - if the ephemeral key in the onion is unparsable:
-    - return an `invalid_onion_key` error.
-  - if during forwarding to its receiving peer, an otherwise unspecified,
-  transient error occurs in the outgoing channel (e.g. channel capacity reached,
-  too many in-flight HTLCs, etc.):
-    - return a `temporary_channel_failure` error.
-  - if an otherwise unspecified, permanent error occurs during forwarding to its
-  receiving peer (e.g. channel recently closed):
-    - return a `permanent_channel_failure` error.
-  - if the outgoing channel has requirements advertised in its
-  `channel_announcement`'s `features`, which were NOT included in the onion:
-    - return a `required_channel_feature_missing` error.
-  - if the receiving peer specified by the onion is NOT known:
-    - return an `unknown_next_peer` error.
-  - if the HTLC amount is less than the currently specified minimum amount:
-    - report the amount of the outgoing HTLC and the current channel setting for
-    the outgoing channel.
-    - return an `amount_below_minimum` error.
-  - if the HTLC does NOT pay a sufficient fee:
-    - report the amount of the incoming HTLC and the current channel setting for
-    the outgoing channel.
-    - return a `fee_insufficient` error.
- -  if the incoming `cltv_expiry` minus the `outgoing_cltv_value` is below the
-    `cltv_expiry_delta` for the outgoing channel:
-    - report the `cltv_expiry` of the outgoing HTLC and the current channel setting for the outgoing
-    channel.
-    - return an `incorrect_cltv_expiry` error.
-  - if the `cltv_expiry` is unreasonably near the present:
-    - report the current channel setting for the outgoing channel.
-    - return an `expiry_too_soon` error.
-  - if the `cltv_expiry` is unreasonably far in the future:
-    - return an `expiry_too_far` error.
-  - if the channel is disabled:
-    - report the current channel setting for the outgoing channel.
-    - return a `channel_disabled` error.
+Un _nodo de reenvío_ PUEDE, pero un _nodo final_ NO DEBE:
+  - si se desconoce el byte de `versión` de cebolla:
+    - devuelve un error `invalid_onion_version`.
+  - si la cebolla HMAC es incorrecta:
+    - devuelve un error `invalid_onion_hmac`.
+  - si la clave efímera en la cebolla no se puede analizar:
+    - devuelve un error `invalid_onion_key`.
+  - si durante el reenvío a su par receptor, se produce un error transitorio no especificado en el canal de salida (por ejemplo, capacidad del canal alcanzada, demasiados HTLC en vuelo, etc.):
+    - devuelve un error `temporal_channel_failure`.
+  - si se produce un error permanente no especificado durante el reenvío a su par receptor (por ejemplo, canal cerrado recientemente):
+    - devuelve un error `permanent_channel_failure`.
+  - si el canal saliente tiene requisitos anunciados en las `características` de `channel_announcement`, que NO se incluyeron en la cebolla:
+    - devuelve un error `required_channel_feature_missing`.
+  - si NO se conoce el par receptor especificado por la cebolla:
+    - devuelve un error `unknown_next_peer`.
+  - si la cantidad de HTLC es inferior a la cantidad mínima especificada actualmente:
+    - informar la cantidad del HTLC saliente y la configuración del canal actual para el canal saliente.
+    - devuelve un error `amount_below_minimum`.
+  - si el HTLC NO paga una tarifa suficiente:
+    - informar la cantidad del HTLC entrante y la configuración del canal actual para el canal saliente.
+    - devuelve un error `fee_insufficient`.
+ - si el `cltv_expiry` entrante menos el `outgoing_cltv_value` está por debajo del `cltv_expiry_delta` para el canal saliente:
+    - informar el `cltv_expiry` del HTLC saliente y la configuración del canal actual para el canal saliente.
+    - devuelve un error `incorrect_cltv_expiry`.
+  - si `cltv_expiry` está injustificadamente cerca del presente:
+    - informar la configuración del canal actual para el canal saliente.
+    - devuelve un error `expiry_too_soon`.
+  - si `cltv_expiry` está irrazonablemente lejos en el futuro:
+    - devuelve un error `expiry_too_far`.
+  - si el canal está deshabilitado:
+    - informar la configuración del canal actual para el canal saliente.
+    - devuelve un error `channel_disabled`.
 
-An _intermediate hop_ MUST NOT, but the _final node_:
-  - if the payment hash has already been paid:
-    - MAY treat the payment hash as unknown.
-    - MAY succeed in accepting the HTLC.
-  - if the `payment_secret` doesn't match the expected value for that `payment_hash`,
-    or the `payment_secret` is required and is not present:
-    - MUST fail the HTLC.
-    - MUST return an `incorrect_or_unknown_payment_details` error.
-  - if the amount paid is less than the amount expected:
-    - MUST fail the HTLC.
-    - MUST return an `incorrect_or_unknown_payment_details` error.
-  - if the payment hash is unknown:
-    - MUST fail the HTLC.
-    - MUST return an `incorrect_or_unknown_payment_details` error.
-  - if the amount paid is more than twice the amount expected:
-    - SHOULD fail the HTLC.
-    - SHOULD return an `incorrect_or_unknown_payment_details` error.
-      - Note: this allows the origin node to reduce information leakage by
-      altering the amount while not allowing for accidental gross overpayment.
-  - if the `cltv_expiry` value is unreasonably near the present:
-    - MUST fail the HTLC.
-    - MUST return an `incorrect_or_unknown_payment_details` error.
-  - if the `cltv_expiry` from the final node's HTLC is below `outgoing_cltv_value`:
-    - MUST return `final_incorrect_cltv_expiry` error.
-  - if `amount_msat` from the final node's HTLC is below `amt_to_forward`:
-    - MUST return a `final_incorrect_htlc_amount` error.
-  - if it returns a `channel_update`:
-    - MUST set `short_channel_id` to the `short_channel_id` used by the incoming onion.
+Un _salto intermedio_ NO DEBE, pero el _nodo final_:
+  - si el `payment_hash` ya ha sido pagado:
+    - PUEDE tratar el `payment_hash` como desconocido.
+    - PUEDE lograr aceptar el HTLC.
+  - si el `payment_secret` no coincide con el valor esperado para ese `payment_hash`, o si se requiere `payment_secret` y no está presente:
+    - DEBE fallar el HTLC.
+    - DEBE devolver un error `incorrect_or_unknown_payment_details`.
+  - si la cantidad pagada es inferior a la cantidad esperada:
+    - DEBE fallar el HTLC.
+    - DEBE devolver un error `incorrect_or_unknown_payment_details`.
+  - si se desconoce el hash de pago:
+    - DEBE fallar el HTLC.
+    - DEBE devolver un error `incorrect_or_unknown_payment_details`.
+  - si la cantidad pagada es más del doble de la cantidad esperada:
+    - DEBE fallar el HTLC.
+    - DEBERÍA devolver un error `incorrect_or_unknown_payment_details`.
+      - Nota: esto permite que el nodo de origen reduzca la fuga de información alterando el monto sin permitir el sobrepago bruto accidental.
+  - si el valor de `cltv_expiry` está injustificadamente cerca del presente:
+    - DEBE fallar el HTLC.
+    - DEBE devolver un error `incorrect_or_unknown_payment_details`.
+- si `cltv_expiry` del HTLC del nodo final está por debajo de `outgoing_cltv_value`:
+    - DEBE devolver el error `final_incorrect_cltv_expiry`.
+  - si `amount_msat` del HTLC del nodo final está por debajo de `amt_to_forward`:
+    - DEBE devolver un error `final_incorrect_htlc_amount`.
+  - si devuelve un `channel_update`:
+    - DEBE establecer `short_channel_id` en `short_channel_id` utilizado por la cebolla entrante.
+### Racional
 
-### Rationale
+En el caso de múltiples alias de short_channel_id, `channel_update` `short_channel_id` debe referirse al que espera el remitente original, tanto para evitar confusiones como para evitar filtraciones de información sobre otros alias (o la ubicación real del canal UTXO).
 
-In the case of multiple short_channel_id aliases, the `channel_update`
-`short_channel_id` should refer to the one the original sender is
-expecting, to both avoid confusion and to avoid leaking information
-about other aliases (or the real location of the channel UTXO).
+## Recibir códigos de error
 
-## Receiving Failure Codes
+### Requisitos
 
-### Requirements
-
-The _origin node_:
-  - MUST ignore any extra bytes in `failuremsg`.
-  - if the _final node_ is returning the error:
-    - if the PERM bit is set:
-      - SHOULD fail the payment.
-    - otherwise:
-      - if the error code is understood and valid:
-        - MAY retry the payment. In particular, `final_expiry_too_soon` can
-        occur if the block height has changed since sending, and in this case
-        `temporary_node_failure` could resolve within a few seconds.
-  - otherwise, an _intermediate hop_ is returning the error:
-    - if the NODE bit is set:
-      - SHOULD remove all channels connected with the erring node from
-      consideration.
-    - if the PERM bit is NOT set:
-      - SHOULD restore the channels as it receives new `channel_update`s.
-    - otherwise:
-      - if UPDATE is set, AND the `channel_update` is valid and more recent
-      than the `channel_update` used to send the payment:
-        - if `channel_update` should NOT have caused the failure:
-          - MAY treat the `channel_update` as invalid.
-        - otherwise:
-          - SHOULD apply the `channel_update`.
-        - MAY queue the `channel_update` for broadcast.
-      - otherwise:
-        - SHOULD eliminate the channel outgoing from the erring node from
-        consideration.
-        - if the PERM bit is NOT set:
-          - SHOULD restore the channel as it receives new `channel_update`s.
-    - SHOULD then retry routing and sending the payment.
-  - MAY use the data specified in the various failure types for debugging
-  purposes.
-
+El _nodo de origen_:
+  - DEBE ignorar cualquier byte extra en `failuremsg`.
+  - si el _nodo final_ devuelve el error:
+    - si el bit PERM está activado:
+      - DEBE fallar el pago.
+    - de lo contrario:
+      - si el código de error se entiende y es válido:
+        - PUEDE volver a intentar el pago. En particular, `final_expiry_too_soon` puede ocurrir si la altura del bloque ha cambiado desde el envío y, en este caso, `temporal_node_failure` podría resolverse en unos pocos segundos.
+  - de lo contrario, un _salto intermedio_ está devolviendo el error:
+    - si el bit NODO está establecido:
+      - DEBE eliminar todos los canales conectados con el nodo erróneo de la consideración.
+    - si el bit PERM NO está activado:
+      - DEBERÍA restaurar los canales a medida que recibe nuevos `channel_update`s.
+    - de lo contrario:
+      - si se establece ACTUALIZAR, Y `channel_update` es válido y más reciente que `channel_update` utilizado para enviar el pago:
+        - si `channel_update` NO debería haber causado la falla:
+          - PUEDE tratar `channel_update` como no válido.
+        - de lo contrario:
+          - DEBERÍA aplicar el `channel_update`.
+        - PUEDE poner en cola `channel_update` para su transmisión.
+      - de lo contrario:
+        - DEBERÍA eliminar de consideración el canal que sale del nodo erróneo.
+        - si el bit PERM NO está activado:
+          - DEBERÍA restaurar el canal a medida que recibe nuevas `channel_update`s.
+    - DEBERÍA volver a intentar enrutar y enviar el pago.
+  - PUEDE utilizar los datos especificados en los distintos tipos de fallos con fines de depuración.
 # Test Vector
 
 ## Returning Errors
 
-The test vectors use the following parameters:
+Los vectores de prueba utilizan los siguientes parámetros:
 
 	pubkey[0] = 0x02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619
 	pubkey[1] = 0x0324653eac434488002cc06bbfb7f10fe18991e35f9fe4302dbea6d2353dc0ab1c
@@ -1429,7 +1088,7 @@ The test vectors use the following parameters:
         type  = 34001
         value = [128, 128, ..., 128] (300 bytes)
 
-The following is an in-depth trace of an example of error message creation:
+El siguiente es un seguimiento detallado de un ejemplo de creación de mensaje de error:
 
 	# creating error message
 	encoded_failure_message = 400f0000000000000064000c3500fd84d1fd012c80808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808080808002c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

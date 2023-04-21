@@ -131,7 +131,7 @@ Los diversos campos `_basepoint` se utilizan para derivar claves únicas como se
 
 Solo el bit menos significativo de `channel_flags` está definido actualmente: `announce_channel`. Esto indica si el iniciador del flujo de fondos desea anunciar este canal públicamente en la red, como se detalla en [BOLT #7](07-routing-gossip.md#bolt-7-p2p-node-and-channel-discovery) .
 
-`shutdown_scriptpubkey` permite que el nodo enviador se comprometa a dónde irán los fondos en el cierre mutuo, lo que el nodo remoto debe hacer cumplir incluso si un nodo se ve comprometido más adelante.
+`shutdown_scriptpubkey` permite que el nodo emisor se comprometa a dónde irán los fondos en el cierre mutuo, lo que el nodo remoto debe hacer cumplir incluso si un nodo se ve comprometido más adelante.
 
 `option_support_large_channel` es una función que se usa para que todos sepan que este nodo aceptará `funding_satoshis` mayores o iguales a 2^24.
 
@@ -226,7 +226,7 @@ El nodo receptor NO DEBE:
   - considerar los fondos recibidos, utilizando `push_msat`, como recibidos hasta que la transacción de financiación haya alcanzado la profundidad suficiente.
 
 <!-- omit in toc -->
-#### Base Lógica
+#### Racional
 
 El requisito de que `funding_satoshis` sea inferior a 2^24 satoshi fue un límite autoimpuesto temporal, mientras que las implementaciones aún no se consideraban estables, se puede eliminar anunciando `option_support_large_channel`.
 
@@ -346,7 +346,7 @@ El receptor:
 [question]: <> (¿Qué es la regla LOW-S)
 
 <!-- omit in toc -->
-#### Base Lógica
+#### Racional
 
 `funding_output_index` solo puede tener 2 bytes, ya que así es como se empaqueta en el `channel_id` y se usa en todo el protocolo de chismes. El límite de 65.535 salidas no debería ser demasiado oneroso.
 
@@ -397,7 +397,7 @@ El receptor:
     - DEBE transmitir la transacción de financiación.
 
 <!-- omit in toc -->
-#### Base Lógica
+#### Racional
 
 Decidimos por `option_static_remotekey`, `option_anchor_outputs` o`option_anchors_zero_fee_htlc_tx` en este punto cuando primero tenemos que generarla transacción de compromiso. Los bits de características que se comunicaron en elintercambio de mensajes `init` para la conexión actual determinar el canalformato de compromiso para el tiempo de vida total del canal. Incluso si es más tardela reconexión no negocia este parámetro, este canal continuaráuse `option_static_remotekey`, `option_anchor_outputs` o`option_anchors_zero_fee_htlc_tx`; no admitimos la "rebaja de categoría".`option_anchors_zero_fee_htlc_tx` se considera superior a`option_anchor_outputs`, que de nuevo se considera superior a`option_static_remotekey`, y se favorece la superior si hay más de unase negocia.
 
@@ -461,7 +461,7 @@ El receptor:
 Desde el punto de espera de `channel_ready` en adelante, cualquiera de los nodos PUEDEenvía un 'error' y falla el canal si no recibe una respuesta requerida delotro nodo después de un tiempo de espera razonable.
 
 <!-- omit in toc -->
-#### Base Lógica
+#### Racional
 
 El que no financia puede simplemente olvidar que el canal existió alguna vez, ya que los fondos no están en riesgo. Si el beneficiario recordara el canal para siempre, esto crearía un riesgo de Denegación de Servicio; por lo tanto, se recomienda olvidarlo (incluso si la promesa de `push_msat` es significativa). Si el beneficiario olvida el canal antes de que se confirme, el financiador deberá transmitir la transacción de compromiso para recuperar sus fondos y abrir un nuevo canal. Para evitar esto, el financiador debe asegurarse de que la transacción de financiamiento se confirme en los próximos 2.016 bloques.
 
@@ -540,21 +540,21 @@ Un nodo receptor:
     - DEBE fallar la conexión.
 
 <!-- omit in toc -->
-#### Base Lógica
+#### Racional
 
-Si el estado del canal es siempre "limpio" (sin cambios pendientes) cuando uncomienza el apagado, se evita la cuestión de cómo comportarse si no fuera así:el remitente siempre envía primero un `commitment_signed`.Como el cierre implica un deseo de terminar, implica que no hay nuevosSe agregarán o aceptarán HTLC. Una vez que se liquidan los HTLC, no hay compromisospor el cual se debe una revocación, y todas las actualizaciones se incluyen tanto en el compromisotransacciones, el par puede comenzar inmediatamente a cerrar la negociación, por lo que prohibimos másactualizaciones de la transacción de compromiso (en particular, `update_fee` seríaposible de otra manera). Sin embargo, aunque hay HTLC en la transacción de compromiso,el iniciador puede considerar deseable aumentar la tarifa ya que puede haberHTLC en el compromiso que podría expirar.
+Si el estado del canal es siempre "limpio" (sin cambios pendientes) cuando comienza el apagado, se evita la cuestión de cómo comportarse si no fuera así: el remitente siempre envía primero un `commitment_signed`. Como el cierre implica un deseo de terminar, implica que no hay nuevosSe agregarán o aceptarán HTLC. Una vez que se liquidan los HTLC, no hay compromisos por los cuales se deba una revocación, y todas las actualizaciones se incluyen en ambas transacciones de compromiso, el par puede comenzar inmediatamente a cerrar la negociación, por lo que prohibimos más actualizaciones de la transacción de compromiso (en particular, `update_fee` sería posible de otra manera). Sin embargo, mientras haya HTLC en la transacción de compromiso, el iniciador puede considerar deseable aumentar la tarifa ya que puede haber HTLCs pendientes en el compromiso que podrían expirar.
 
-Los formularios `scriptpubkey` incluyen solo formularios segwit estándar aceptados porla red Bitcoin, lo que garantiza que la transacción resultantepropagar a los mineros. Sin embargo, los nodos antiguos pueden enviar scripts no segwit, quepuede ser aceptado para la compatibilidad con versiones anteriores (con una advertencia para forzar el cierresi esta salida no cumple con los requisitos del relé de polvo).
+Los formularios `scriptpubkey` incluyen solo formularios segwit estándar aceptados porla red Bitcoin, lo que garantiza que la transacción resultante se propagará a los mineros. Sin embargo, los nodos antiguos pueden enviar scripts no segwit, los cuales pueden ser aceptados para la compatibilidad con versiones anteriores (con una advertencia para forzar el cierre si esta salida no cumple con los requisitos de polvo del `relay`).
 
-La función `option_upfront_shutdown_script` significa que el nodoquería comprometerse previamente con `shutdown_scriptpubkey` en caso de que fueracomprometido de alguna manera. Este es un compromiso débil (un malévoloimplementación tiende a ignorar especificaciones como esta!), peroproporciona una mejora gradual en la seguridad al requerir la cooperacióndel nodo receptor para cambiar la `scriptpubkey`.
+La función `option_upfront_shutdown_script` significa que el nodo quería comprometerse previamente con `shutdown_scriptpubkey` en caso de que se viera comprometido de alguna manera. Este es un compromiso débil (¡un implementación malévola tiende a ignorar especificaciones como esta!), pero proporciona una mejora incremental en la seguridad al requerir la cooperación del nodo receptor para cambiar la `scriptpubkey`.
 
 El requisito de respuesta `shutdown` implica que el nodo envía `commitment_signed` para confirmar cualquier cambio pendiente antes de responder; sin embargo, teóricamente podría volver a conectarse, lo que simplemente borraría todos los cambios no confirmados pendientes.
 
 ### Negociación de cierre: `closing_signed`
 
-Una vez que se completa el cierre, el canal está vacío de HTLC, no hay compromisospara los cuales se debe una revocación, y todas las actualizaciones están incluidas en ambos compromisos,las transacciones finales de compromiso actual no tendrán HTLC y la tarifa de cierrecomienza la negociación. El financiador elige una tarifa que cree que es justa, yfirma la transacción de cierre con los campos `scriptpubkey` delmensajes de `shutdown` (junto con la tarifa elegida) y envía la firma;el otro nodo luego responde de manera similar, utilizando una tarifa que considera justa. Esteel intercambio continúa hasta que ambos acuerdan la misma tarifa o cuando uno de los lados fallael canal.
+Una vez que se completa el cierre, el canal está vacío de HTLC, no hay compromisos para los cuales se debe una revocación, y todas las actualizaciones están incluidas en ambos compromisos, las transacciones finales de compromiso actual no tendrán HTLC y comienza la negociación de la tarifa de cierre. El financiador elige una tarifa que cree que es justa, y firma la transacción de cierre con los campos `scriptpubkey` de los mensajes de `shutdown` (junto con la tarifa elegida) y envía la firma; el otro nodo luego responde de manera similar, utilizando una tarifa que considera justa. Este intercambio continúa hasta que ambos acuerdan la misma tarifa o cuando uno de los lados falla en el canal.
 
-En el método moderno, el financiador envía su rango de tarifas permisible y elel no financiador tiene que elegir una tarifa en este rango. Si el no financiador elige el mismovalor, la negociación se completa después de dos mensajes, de lo contrario, el financiadorresponder con el mismo valor (completando después de tres mensajes).
+En el método moderno, el financiador envía su rango de tarifas permisible y el que no financia tiene que elegir una tarifa en este rango. Si el que no financia elige el mismo valor, la negociación se completa después de dos mensajes, de lo contrario, el financiado responderá con el mismo valor (completando después de tres mensajes).
 
 1. type: 39 (`closing_signed`)
 2. data:
@@ -573,24 +573,21 @@ En el método moderno, el financiador envía su rango de tarifas permisible y el
 <!-- omit in toc -->
 #### Requisitos
 
-The funding node:
-  - after `shutdown` has been received, AND no HTLCs remain in either commitment transaction:
-    - SHOULD send a `closing_signed` message.
+El nodo financiador:
+  - después de que se haya recibido `shutdown`, Y no queden HTLCs en ninguna de las transacciones de compromiso:
+    - DEBERÍA enviar un mensaje `closing_signed`.
 
-The sending node:
-  - SHOULD set the initial `fee_satoshis` according to its estimate of cost of
-  inclusion in a block.
-  - SHOULD set `fee_range` according to the minimum and maximum fees it is
-  prepared to pay for a close transaction.
-  - if it doesn't receive a `closing_signed` response after a reasonable amount of time:
-    - MUST fail the channel
-  - if it is not the funder:
-    - SHOULD set `max_fee_satoshis` to at least the `max_fee_satoshis` received
-    - SHOULD set `min_fee_satoshis` to a fairly low value
-  - MUST set `signature` to the Bitcoin signature of the close transaction,
-  as specified in [BOLT #3](03-transactions.md#closing-transaction).
+El nodo emisor:
+  - DEBERÍA establecer el `fee_satoshis` inicial de acuerdo a si estimacióm del coste de inclusión en un bloque
+  - DEBERÍA establecer `fee_range` de acuerdo con las tarifas mínimas y máximas que está dispuesto a pagar por una transacción cerrada.
+  - si no recibe una respuesta `closing_signed` después de un tiempo razonable:
+    - DEBE fallar el canal
+  - si no es el financiador:
+    - DEBERÍA establecer `max_fee_satoshis` al menos al `max_fee_satoshis` recibido
+    - DEBERÍA establecer `min_fee_satoshis` a un valor bastante bajo
+  - DEBE establecer `signature` a la firma de Bitcoin de la transacción de cierre, como se especifica en [BOLT #3](03-transactions.md#closing-transaction).
 
-The receiving node:
+El nodo receptor:
   - if the `signature` is not valid for either variant of closing transaction
   specified in [BOLT #3](03-transactions.md#closing-transaction) OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
     - MUST send a `warning` and close the connection, or send an
@@ -633,19 +630,21 @@ The receiving node:
     - MUST fail the channel
 
 <!-- omit in toc -->
-#### Base Lógica
+#### Racional
 
-Cuando no se proporciona `fee_range`, el requisito "estrictamente entre" garantizaese progreso hacia adelante se hace, aunque solo sea por un solo satoshi a la vez. Para evitar mantener el estado y manejar el caso de la esquina, donde las tarifas se han desplazadoentre la desconexión y la reconexión, la negociación se reinicia en la reconexión.
-Tenga en cuenta que existe un riesgo limitado si la transacción de cierre esretrasado, pero será emitido muy pronto; por lo que normalmente no hayrazón para pagar una prima por un procesamiento rápido.
-Tenga en cuenta que el no financiador no está pagando la tarifa, por lo que no hay razón para ellotener una tarifa máxima. Sin embargo, puede querer una tarifa mínima para garantizarque la transacción se propaga. Siempre puede usar CPFP más tarde para acelerarconfirmación si es necesario, por lo que el mínimo debe ser bajo.
-Puede suceder que la transacción de cierre no cumpla con el relé predeterminado de bitcoinpolíticas (por ejemplo, cuando se usa un script de apagado que no es segwit para una salida por debajo de 546satoshis, lo cual es posible si `dust_limit_satoshis` está por debajo de 546 satoshis). No hay fondos en riesgo cuando eso sucede, pero el canal debe cerrarse a la fuerza comola transacción de cierre probablemente nunca llegará a los mineros.
+Cuando no se proporciona `fee_range`, el requisito "estrictamente entre" garantiza ese progreso hacia adelante se hace, aunque solo sea por un solo satoshi a la vez. Para evitar mantener el estado y manejar el caso límite, donde las tarifas se han desplazado entre la desconexión y la reconexión, la negociación se reinicia en la reconexión.
+
+Tenga en cuenta que existe un riesgo limitado si la transacción de cierre se retrasa, pero será emitida muy pronto; por lo que normalmente no hay razón para pagar una prima pora acelerar el procesado.
+
+Tenga en cuenta que el no financiador no está pagando la tarifa, por lo que no hay razón para que tenga una tarifa máxima. Sin embargo, puede querer una tarifa mínima para garantizar que la transacción se propague. Siempre puede usar CPFP más tarde para acelerar la confirmación si es necesario, por lo que el mínimo debe ser bajo.
+
+Puede suceder que la transacción de cierre no cumpla con las políticas de retransmisión predeterminadas de bitcoin (por ejemplo, cuando se usa un script de apagado que no es segwit para una salida por debajo de 546 satoshis, lo cual es posible si `dust_limit_satoshis` está por debajo de 546 satoshis). No hay fondos en riesgo cuando eso sucede, pero el canal debe cerrarse a la fuerza, ya que probablemente la transacción de cierre nunca llegue a los mineros.
 
 ## Operación normal
 
 Una vez que ambos nodos hayan intercambiado `channel_ready` (y opcionalmente [`announcement_signatures`](07-routing-gossip.md#the-announcement_signatures-message)), el canal se puede usar para realizar pagos a través de `Hashed Time Locked Contracts`.
 
-Los cambios se envían por lotes: uno o más mensajes `update_` se envían antes de un
-mensaje `commitment_signed`, como en el siguiente diagrama:
+Los cambios se envían por lotes: uno o más mensajes `update_` se envían antes de un mensaje `commitment_signed`, como se puede ver en el siguiente diagrama:
 
         +-------+                               +-------+
         |       |--(1)---- update_add_htlc ---->|       |
@@ -662,7 +661,7 @@ mensaje `commitment_signed`, como en el siguiente diagrama:
         |       |<-(9)---- revoke_and_ack ------|       |
         +-------+                               +-------+
 
-Contrariamente a la intuición, estas actualizaciones se aplican a los *otros nodos* transacción de compromiso; el nodo solo agrega esas actualizaciones a su propio transacción de compromiso cuando el nodo remoto reconoce que ha los aplicó a través de `revoke_and_ack`.
+Contrariamente a la intuición, estas actualizaciones se aplican a los *otros nodos* de la transacción de compromiso; el nodo solo agrega esas actualizaciones a su propia transacción de compromiso cuando el nodo remoto reconoce que los aplicó a través de `revoke_and_ack`.
 
 Por lo tanto, cada actualización atraviesa los siguientes estados:
 
@@ -673,9 +672,8 @@ Por lo tanto, cada actualización atraviesa los siguientes estados:
 5. ... y se ha revocado la transacción de compromiso anterior del remitente
 
 
-Como las actualizaciones de los dos nodos son independientes, los dos compromisos las transacciones pueden estar desincronizadas indefinidamente. Esto no es preocupante: 
-lo que importa es si ambas partes se han comprometido irrevocablemente a un
-actualización particular o no (el estado final, arriba).
+Como las actualizaciones de los dos nodos son independientes, las transacciones dos compromisos  pueden estar desincronizadas indefinidamente. Esto no es preocupante: 
+lo que importa es si ambas partes se han comprometido irrevocablemente a un actualización particular o no (el estado final, arriba).
 
 ### Reenvío de HTLCs
 
@@ -704,7 +702,7 @@ to that outgoing HTLC.
     - MUST fulfill the incoming HTLC that corresponds to that outgoing HTLC.
 
 <!-- omit in toc -->
-#### Base Lógica
+#### Racional
 
 En general, un lado del intercambio debe tratarse antes que el otro.
 Cumplir con un HTLC es diferente: el conocimiento de la preimagen es, por definición, irrevocable y el HTLC entrante debe cumplirse lo antes posible para reducir la latencia.
@@ -806,20 +804,12 @@ A sending node:
     node is the funder:
       - MUST be able to additionally pay for `to_local_anchor` and 
       `to_remote_anchor` above its reserve.
-    - SHOULD NOT offer `amount_msat` if, after adding that HTLC to its commitment
-    transaction, its remaining balance doesn't allow it to pay the commitment
-    transaction fee when receiving or sending a future additional non-dust HTLC
-    while maintaining its channel reserve. It is recommended that this "fee spike
-    buffer" can handle twice the current `feerate_per_kw` to ensure predictability
-    between implementations.
+    - SHOULD NOT offer `amount_msat` if, after adding that HTLC to its commitment transaction, its remaining balance doesn't allow it to pay the commitment transaction fee when receiving or sending a future additional non-dust HTLC while maintaining its channel reserve. It is recommended that this "fee spike buffer" can handle twice the current `feerate_per_kw` to ensure predictability between implementations.
   - if it is _not responsible_ for paying the Bitcoin fee:
-    - SHOULD NOT offer `amount_msat` if, once the remote node adds that HTLC to
-    its commitment transaction, it cannot pay the fee for the updated local or
-    remote transaction at the current `feerate_per_kw` while maintaining its
-    channel reserve.
+    - SHOULD NOT offer `amount_msat` if, once the remote node adds that HTLC to its commitment transaction, it cannot pay the fee for the updated local or remote transaction at the current `feerate_per_kw` while maintaining its channel reserve.
   - MUST offer `amount_msat` greater than 0.
   - MUST NOT offer `amount_msat` below the receiving node's `htlc_minimum_msat`
-  - MUST set `cltv_expiry` less than 500000000.
+  - DEBE establecer `cltv_expiry` less than 500000000.
   - if result would be offering more than the remote's
   `max_accepted_htlcs` HTLCs, in the remote commitment transaction:
     - MUST NOT add an HTLC.
@@ -827,10 +817,10 @@ A sending node:
 `max_htlc_value_in_flight_msat`:
     - MUST NOT add an HTLC.
   - for the first HTLC it offers:
-    - MUST set `id` to 0.
+    - DEBE establecer `id` to 0.
   - MUST increase the value of `id` by 1 for each successive offer.
   - if it is relaying a payment inside a blinded route:
-    - MUST set `blinding_point` (see [Route Blinding](04-onion-routing.md#route-blinding))
+    - DEBE establecer `blinding_point` (see [Route Blinding](04-onion-routing.md#route-blinding))
 
 `id` MUST NOT be reset to 0 after the update is complete (i.e. after `revoke_and_ack` has
 been received). It MUST continue incrementing instead.
@@ -861,7 +851,7 @@ Un nodo receptor:
 The `onion_routing_packet` contains an obfuscated list of hops and instructions for each hop along the path.It commits to the HTLC by setting the `payment_hash` as associated data, i.e. includes the `payment_hash` in the computation of HMACs.This prevents replay attacks that would reuse a previous `onion_routing_packet` with a different `payment_hash`.
 
 <!-- omit in toc -->
-#### Base Lógica
+#### Racional
 
 Las cantidades no válidas son una clara violación del protocolo e indican un desglose.
 
@@ -950,7 +940,7 @@ Un nodo receptor:
       data to `sha256_of_onion`.
 
 <!-- omit in toc -->
-#### Base Lógica
+#### Racional
 
 Un nodo que no agota el tiempo de espera de los HTLC corre el riesgo de fallar en el canal (ver [Selección `cltv_expiry_delta`](#cltv_expiry_delta-selection)).
 
@@ -1007,7 +997,7 @@ Un nodo receptor:
   - MUST respond with a `revoke_and_ack` message.
 
 <!-- omit in toc -->
-#### Base Lógica
+#### Racional
 
 Tiene poco sentido ofrecer actualizaciones de spam: esto implica un bug.
 
@@ -1037,8 +1027,8 @@ La descripción de la derivación de claves se encuentra en [BOLT #3](03-transac
 #### Requisitos
 
 A sending node:
-  - MUST set `per_commitment_secret` to the secret used to generate keys for the previous commitment transaction.
-  - MUST set `next_per_commitment_point` to the values for its next commitment transaction.
+  - DEBE establecer `per_commitment_secret` to the secret used to generate keys for the previous commitment transaction.
+  - DEBE establecer `next_per_commitment_point` to the values for its next commitment transaction.
 
 Un nodo receptor:
   - if `per_commitment_secret` is not a valid secret key or does not generate the previous `per_commitment_point`:
@@ -1093,7 +1083,7 @@ Un nodo receptor:
       - but MAY delay this check until the `update_fee` is committed.
 
 <!-- omit in toc -->
-#### Base Lógica
+#### Racional
 
 Se requieren tarifas de Bitcoin para que los cierres unilaterales sean efectivos. Con `option_anchors`, `feerate_per_kw` ya no es tan crítico para garantizar la confirmación como lo era en el formato de compromiso heredado, pero aún debe ser suficiente para poder ingresar al mempool (satisfacer la tarifa mínima de retransmisión y la tarifa mínima de mempool).
 
@@ -1159,21 +1149,21 @@ Un nodo:
         message before sending any other messages for that channel.
 
 The sending node:
-  - MUST set `next_commitment_number` to the commitment number of the
+  - DEBE establecer `next_commitment_number` to the commitment number of the
   next `commitment_signed` it expects to receive.
-  - MUST set `next_revocation_number` to the commitment number of the
+  - DEBE establecer `next_revocation_number` to the commitment number of the
   next `revoke_and_ack` message it expects to receive.
   - if `option_static_remotekey` applies to the commitment
     transaction:
-    - MUST set `my_current_per_commitment_point` to a valid point.
+    - DEBE establecer `my_current_per_commitment_point` to a valid point.
   - otherwise:
-    - MUST set `my_current_per_commitment_point` to its commitment point for
+    - DEBE establecer `my_current_per_commitment_point` to its commitment point for
       the last signed commitment it received from its channel peer (i.e. the commitment_point
       corresponding to the commitment transaction the sender would use to unilaterally close).
   - if `next_revocation_number` equals 0:
-    - MUST set `your_last_per_commitment_secret` to all zeroes
+    - DEBE establecer `your_last_per_commitment_secret` to all zeroes
   - otherwise:
-    - MUST set `your_last_per_commitment_secret` to the last `per_commitment_secret` it received
+    - DEBE establecer `your_last_per_commitment_secret` to the last `per_commitment_secret` it received
 
 Un nodo:
   - if `next_commitment_number` is 1 in both the `channel_reestablish` it
