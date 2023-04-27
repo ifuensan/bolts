@@ -4,44 +4,58 @@ This details the exact format of on-chain transactions, which both sides need to
 
 # Table of Contents
 
-  * [Transactions](#transactions)
-    * [Transaction Output Ordering](#transaction-output-ordering)
-    * [Use of Segwit](#use-of-segwit)
-    * [Funding Transaction Output](#funding-transaction-output)
-    * [Commitment Transaction](#commitment-transaction)
-        * [Commitment Transaction Outputs](#commitment-transaction-outputs)
-          * [`to_local` Output](#to_local-output)
-          * [`to_remote` Output](#to_remote-output)
-          * [`to_local_anchor` and `to_remote_anchor`](#to_local_anchor-and-to_remote_anchor-output-option_anchor_outputs)
-          * [Offered HTLC Outputs](#offered-htlc-outputs)
-          * [Received HTLC Outputs](#received-htlc-outputs)
-        * [Trimmed Outputs](#trimmed-outputs)
-    * [HTLC-timeout and HTLC-success Transactions](#htlc-timeout-and-htlc-success-transactions)
-	* [Closing Transaction](#closing-transaction)
-    * [Fees](#fees)
-        * [Fee Calculation](#fee-calculation)
-        * [Fee Payment](#fee-payment)
-    * [Dust Limits](#dust-limits)
-    * [Commitment Transaction Construction](#commitment-transaction-construction)
-  * [Keys](#keys)
-    * [Key Derivation](#key-derivation)
-        * [`localpubkey`, `remotepubkey`, `local_htlcpubkey`, `remote_htlcpubkey`, `local_delayedpubkey`, and `remote_delayedpubkey` Derivation](#localpubkey-remotepubkey-local_htlcpubkey-remote_htlcpubkey-local_delayedpubkey-and-remote_delayedpubkey-derivation)
-        * [`revocationpubkey` Derivation](#revocationpubkey-derivation)
-        * [Per-commitment Secret Requirements](#per-commitment-secret-requirements)
-    * [Efficient Per-commitment Secret Storage](#efficient-per-commitment-secret-storage)
-  * [Appendix A: Expected Weights](#appendix-a-expected-weights)
-      * [Expected Weight of the Commitment Transaction](#expected-weight-of-the-commitment-transaction)
-      * [Expected Weight of HTLC-timeout and HTLC-success Transactions](#expected-weight-of-htlc-timeout-and-htlc-success-transactions)
-  * [Appendix B: Funding Transaction Test Vectors](#appendix-b-funding-transaction-test-vectors)
-  * [Appendix C: Commitment and HTLC Transaction Test Vectors](#appendix-c-commitment-and-htlc-transaction-test-vectors)
-  * [Appendix D: Per-commitment Secret Generation Test Vectors](#appendix-d-per-commitment-secret-generation-test-vectors)
-    * [Generation Tests](#generation-tests)
-    * [Storage Tests](#storage-tests)
-  * [Appendix E: Key Derivation Test Vectors](#appendix-e-key-derivation-test-vectors)
-  * [Appendix F: Commitment and HTLC Transaction Test Vectors (anchors)](#appendix-f-commitment-and-htlc-transaction-test-vectors-anchors)
-  * [Appendix G: Commitment and HTLC Transaction Test Vectors (anchors-zero-fee-htlc-tx)](#appendix-g-commitment-and-htlc-transaction-test-vectors-anchors_zero_fee_htlc_tx)
-  * [References](#references)
-  * [Authors](#authors)
+- [BOLT #3: Bitcoin Transaction and Script Formats](#bolt-3-bitcoin-transaction-and-script-formats)
+- [Table of Contents](#table-of-contents)
+- [Transactions](#transactions)
+  - [Transaction Output Ordering](#transaction-output-ordering)
+  - [Rationale](#rationale)
+  - [Use of Segwit](#use-of-segwit)
+  - [Funding Transaction Output](#funding-transaction-output)
+  - [Commitment Transaction](#commitment-transaction)
+    - [Commitment Transaction Outputs](#commitment-transaction-outputs)
+      - [`to_local` Output](#to_local-output)
+      - [`to_remote` Output](#to_remote-output)
+      - [`to_local_anchor` and `to_remote_anchor` Output (option\_anchors)](#to_local_anchor-and-to_remote_anchor-output-option_anchors)
+      - [Offered HTLC Outputs](#offered-htlc-outputs)
+      - [Received HTLC Outputs](#received-htlc-outputs)
+    - [Trimmed Outputs](#trimmed-outputs)
+      - [Requirements](#requirements)
+  - [HTLC-Timeout and HTLC-Success Transactions](#htlc-timeout-and-htlc-success-transactions)
+  - [Closing Transaction](#closing-transaction)
+    - [Requirements](#requirements-1)
+    - [Rationale](#rationale-1)
+  - [Fees](#fees)
+    - [Fee Calculation](#fee-calculation)
+      - [Requirements](#requirements-2)
+      - [Example](#example)
+    - [Fee Payment](#fee-payment)
+  - [Dust Limits](#dust-limits)
+    - [Pay to pubkey hash (p2pkh)](#pay-to-pubkey-hash-p2pkh)
+    - [Pay to script hash (p2sh)](#pay-to-script-hash-p2sh)
+    - [Pay to witness pubkey hash (p2wpkh)](#pay-to-witness-pubkey-hash-p2wpkh)
+    - [Pay to witness script hash (p2wsh)](#pay-to-witness-script-hash-p2wsh)
+    - [Unknown segwit versions](#unknown-segwit-versions)
+  - [Commitment Transaction Construction](#commitment-transaction-construction)
+- [Keys](#keys)
+  - [Key Derivation](#key-derivation)
+    - [`localpubkey`, `local_htlcpubkey`, `remote_htlcpubkey`, `local_delayedpubkey`, and `remote_delayedpubkey` Derivation](#localpubkey-local_htlcpubkey-remote_htlcpubkey-local_delayedpubkey-and-remote_delayedpubkey-derivation)
+    - [`remotepubkey` Derivation](#remotepubkey-derivation)
+    - [`revocationpubkey` Derivation](#revocationpubkey-derivation)
+    - [Per-commitment Secret Requirements](#per-commitment-secret-requirements)
+  - [Efficient Per-commitment Secret Storage](#efficient-per-commitment-secret-storage)
+- [Appendix A: Expected Weights](#appendix-a-expected-weights)
+  - [Expected Weight of the Commitment Transaction](#expected-weight-of-the-commitment-transaction)
+  - [Expected Weight of HTLC-timeout and HTLC-success Transactions](#expected-weight-of-htlc-timeout-and-htlc-success-transactions)
+- [Appendix B: Funding Transaction Test Vectors](#appendix-b-funding-transaction-test-vectors)
+- [Appendix C: Commitment and HTLC Transaction Test Vectors](#appendix-c-commitment-and-htlc-transaction-test-vectors)
+- [Appendix D: Per-commitment Secret Generation Test Vectors](#appendix-d-per-commitment-secret-generation-test-vectors)
+  - [Generation Tests](#generation-tests)
+  - [Storage Tests](#storage-tests)
+- [Appendix E: Key Derivation Test Vectors](#appendix-e-key-derivation-test-vectors)
+- [Appendix F: Commitment and HTLC Transaction Test Vectors (anchors)](#appendix-f-commitment-and-htlc-transaction-test-vectors-anchors)
+- [Appendix G: Commitment and HTLC Transaction Test Vectors (anchors\_zero\_fee\_htlc\_tx)](#appendix-g-commitment-and-htlc-transaction-test-vectors-anchors_zero_fee_htlc_tx)
+- [References](#references)
+- [Authors](#authors)
 
 # Transactions
 
@@ -140,31 +154,26 @@ Otherwise, this output is a simple P2WPKH to `remotepubkey`. Note: the remote's 
 
 #### `to_local_anchor` and `to_remote_anchor` Output (option_anchors)
 
-This output can be spent by the local and remote nodes respectively to provide incentive to mine the transaction, using child-pays-for-parent. Both
-anchor outputs are always added, except for the case where there are no htlcs and one of the parties has a commitment output that is below the dust limit. 
-In that case only an anchor is added for the commitment output that does materialize. This typically happens if the initiator closes right after opening
-(no `to_remote` output).
+Esta salida puede ser gastada por los nodos locales y remotos, respectivamente, para proporcionar un incentivo para minar la transacción, utilizando `child-pays-for-parent`. Ambas salidas ancla siempre se suman, excepto en el caso de que no haya htlcs y una de las partes tenga una `commitment output` que esté por debajo del límite de polvo.
+
+En ese caso, solo se agrega un `anchor` para la `commitment output` que se materializa. Esto suele suceder si el iniciador cierra justo después de abrir (sin salida `to_remote`).
 
     <local_funding_pubkey/remote_funding_pubkey> OP_CHECKSIG OP_IFDUP
     OP_NOTIF
         OP_16 OP_CHECKSEQUENCEVERIFY
     OP_ENDIF
 
-Each party has its own anchor output that locks to their funding key. This is to prevent a malicious peer from attaching child transactions with a low fee
-density to an anchor and thereby blocking the victim from getting the commit tx confirmed in time. This defense is supported by a change in Bitcoin core 0.19:
-https://github.com/bitcoin/bitcoin/pull/15681. This is also the reason that every non-anchor output on the commit tx is CSV locked.
+Cada parte tiene su propia salida de anclaje que se bloquea en su `funding key`. Esto es para evitar que un par malicioso incluya transacciones secundarias con una baja densidad de tarifas a un `anchor` y, por lo tanto, impida que la víctima obtenga la confirmación de tx a tiempo. Esta defensa está respaldada por un cambio en el núcleo de Bitcoin 0.19: https://github.com/bitcoin/bitcoin/pull/15681. Esta es también la razón por la que cada salida que no es `anchor` en el tx de confirmación está bloqueada con CSV.
 
-To prevent utxo set pollution, any anchor that remains unspent can be spent by anyone after the commitment tx confirms. This is also the reason to lock
-the anchor outputs to the funding key. Third parties can observe this key and reconstruct the spend script, even if none of the commitment outputs would
-be spent. This does assume that at some point the fee market goes down to a level where sweeping the anchors is economical.
+Para evitar la contaminación del `UTXO Set`, cualquier `anchor` que quede sin gastar puede ser gastada por cualquier persona después de que se confirme el compromiso de tx. Esta es también la razón para bloquear las `anchor outputs` para la `funding key`. Los terceros pueden observar esta `key` y reconstruir el script de gasto, incluso si no se gasta ninguna de las salidas del compromiso. Esto supone que en algún momento el mercado de tarifas baja a un nivel en el que barrer (`sweeping`) las `anchors` es económico.
 
-The amount of the output is fixed at 330 sats, the default dust limit for P2WSH.
+La cantidad del `output` está fijada en 330 sats, el límite por defecto para P2WSH.
 
-Spending of the output requires the following witness:
+El gasto de este `output` requiere el siguiente testigo (`witness`):
 
     <local_sig/remote_sig>
 
-After 16 blocks, anyone can sweep the anchor with witness:
+Después de 16 bloques, cualquier puede barrer el `anchor` con el testigo:
 
     <>
 

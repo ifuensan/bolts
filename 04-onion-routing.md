@@ -1,5 +1,5 @@
 <!-- omit in toc -->
-# BOLT #4: Protocolo Onion Routing o de enrutado de cebolla
+# BOLT #4: Protocolo Onion Routing
 
 <!-- omit in toc -->
 ## Overview
@@ -129,7 +129,7 @@ Dado que ningún valor TLV de `payload` puede ser inferior a 2 bytes, los valore
 
 ### `payload` format
 
-This is formatted according to the Type-Length-Value format defined in [BOLT #1](01-messaging.md#type-length-value-format).
+This is formatted according to the Type-Length-Value format defined in [BOLT #1](01-messaging.md#formato-tipo-longitud-valor).
 
 1. `tlv_stream`: `payload`
 2. types:
