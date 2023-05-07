@@ -731,9 +731,9 @@ El último salto no necesita ofuscar el `filler`, ya que no reenviará más el p
 # Devolviendo errores
 
 El protocolo de enrutamiento de cebolla incluye un mecanismo simple para devolver mensajes de error cifrados al nodo de origen.
-Los mensajes de error devueltos pueden ser fallas informadas por cualquier salto, incluido el nodo final.
+Los mensajes de error devueltos pueden ser fallos informados por cualquier salto, incluido el nodo final.
 El formato del paquete de reenvío no se puede utilizar para la ruta de retorno, ya que ningún salto además del origen tiene acceso a la información requerida para su generación.
-Tenga en cuenta que estos mensajes de error no son confiables, ya que no se colocan en la cadena debido a la posibilidad de falla del salto.
+Tenga en cuenta que estos mensajes de error no son confiables, ya que no se colocan en la cadena debido a la posibilidad de fallo del salto.
 
 Los saltos intermedios almacenan el secreto compartido de la ruta de reenvío y lo reutilizan para ofuscar cualquier paquete de retorno correspondiente durante cada salto.
 Además, cada nodo almacena localmente datos sobre su propio par de envío en la ruta, por lo que sabe adónde devolver-reenviar cualquier paquete de retorno eventual.
@@ -746,7 +746,7 @@ El nodo que genera el mensaje de error (_erring node_) crea un paquete de retorn
    * [`u16`:`pad_len`]
    * [`pad_len*byte`:`pad`]
 
-Donde `hmac` es un HMAC que autentica el resto del paquete, con una clave generada utilizando el proceso anterior, con el tipo de clave `um`, `failuremsg` como se define a continuación, y `pad` como los bytes adicionales utilizados para ocultar la longitud.
+Donde `hmac` es un HMAC (`Hashed Message Authentication Code`) que autentica el resto del paquete, con una clave generada utilizando el proceso anterior, con el tipo de clave `um`, `failuremsg` como se define a continuación, y `pad` como los bytes adicionales utilizados para ocultar la longitud.
 
 El nodo erróneo luego genera una nueva clave, usando el tipo de clave `ammag`.
 Esta clave luego se usa para generar un flujo pseudoaleatorio, que a su vez se aplica al paquete usando `XOR`.
@@ -778,7 +778,7 @@ El _nodo de origen_:
 
 ## Mensajes de error
 
-El mensaje de error encapsulado en `failuremsg` tiene un formato idéntico al de un mensaje normal: un tipo `failure_code` de 2 bytes seguido de los datos aplicables a ese tipo. Los datos del mensaje van seguidos de un [flujo TLV] opcional (01-messaging.md#type-length-value-format).
+El mensaje de error encapsulado en `failuremsg` tiene un formato idéntico al de un mensaje normal: un tipo `failure_code` de 2 bytes seguido de los datos aplicables a ese tipo. Los datos del mensaje van seguidos de un [flujo TLV](01-messaging.md#formato-tipo-longitud-valor) opcional.
 
 A continuación se muestra una lista de los valores de `failure_code` admitidos actualmente, seguidos de los requisitos de su caso de uso.
 
@@ -787,8 +787,8 @@ Los valores numéricos para `failure_code` pueden por lo tanto reutilizar valore
 
 El byte superior de `failure_code` se puede leer como un conjunto de banderas:
 * 0x8000 (BADONION): cebolla no analizable cifrada por el envío del par
-* 0x4000 (PERM): falla permanente (de lo contrario transitorio)
-* 0x2000 (NODE): falla de nodo (de lo contrario, canal)
+* 0x4000 (PERM): fallo permanente (de lo contrario transitorio)
+* 0x2000 (NODE): fallo de nodo (de lo contrario, canal)
 * 0x1000 (ACTUALIZAR): nueva actualización de canal adjunta
 
 Tenga en cuenta que el campo `channel_update` es obligatorio en los mensajes cuyo `failure_code` incluye el indicador `UPDATE`. Está codificado *con* el prefijo del tipo de mensaje, es decir, siempre debe comenzar con `0x0102`. Tenga en cuenta que las implementaciones históricas de Lightning serializaron esto sin el tipo de mensaje `0x0102`.
@@ -1034,7 +1034,7 @@ Un _salto intermedio_ NO DEBE, pero el _nodo final_:
 <!-- omit in toc -->
 ### Racional
 
-En el caso de múltiples alias de short_channel_id, `channel_update` `short_channel_id` debe referirse al que espera el remitente original, tanto para evitar confusiones como para evitar filtraciones de información sobre otros alias (o la ubicación real del canal UTXO).
+En el caso de múltiples alias de `short_channel_id`, `channel_update` `short_channel_id` debe referirse al que espera el remitente original, tanto para evitar confusiones como para evitar filtraciones de información sobre otros alias (o la ubicación real del canal UTXO).
 
 ## Recibir códigos de error
 
