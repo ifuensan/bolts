@@ -23,17 +23,17 @@ El objetivo de este documento es explicar exactamente cómo debe reaccionar un n
 - [Manejo de cierre mutuo](#manejo-de-cierre-mutuo)
 - [Manejo de Cierre Unilateral: Transacción de Compromiso Local](#manejo-de-cierre-unilateral-transacción-de-compromiso-local)
   - [Manejo de salida de HTLC: compromiso local, ofertas locales](#manejo-de-salida-de-htlc-compromiso-local-ofertas-locales)
-  - [HTLC Output Handling: Local Commitment, Remote Offers](#htlc-output-handling-local-commitment-remote-offers)
-- [Unilateral Close Handling: Remote Commitment Transaction](#unilateral-close-handling-remote-commitment-transaction)
+  - [Manejo de salida de HTLC: compromiso local, ofertas remotas](#manejo-de-salida-de-htlc-compromiso-local-ofertas-remotas)
+- [Manejo cercano unilateral: Transacción de compromiso remoto](#manejo-cercano-unilateral-transacción-de-compromiso-remoto)
   - [HTLC Output Handling: Remote Commitment, Local Offers](#htlc-output-handling-remote-commitment-local-offers)
   - [HTLC Output Handling: Remote Commitment, Remote Offers](#htlc-output-handling-remote-commitment-remote-offers)
-    - [Requirements](#requirements-3)
+    - [Requirements](#requirements-2)
 - [Revoked Transaction Close Handling](#revoked-transaction-close-handling)
-  - [Requirements](#requirements-4)
+  - [Requirements](#requirements-3)
   - [Rationale](#rationale-2)
   - [Penalty Transactions Weight Calculation](#penalty-transactions-weight-calculation)
 - [Generation of HTLC Transactions](#generation-of-htlc-transactions)
-  - [Requirements](#requirements-5)
+  - [Requirements](#requirements-4)
 - [General Requirements](#general-requirements)
 - [Appendix A: Expected Weights](#appendix-a-expected-weights)
   - [Expected Weight of the `to_local` Penalty Transaction Witness](#expected-weight-of-the-to_local-penalty-transaction-witness)
@@ -110,7 +110,7 @@ Un nodo:
         - de lo contrario:
           - DEBE transmitir la *última transacción de compromiso*, para la cual tiene una firma, para realizar un *cierre unilateral*.
           - DEBE gastar cualquier salida `to_local_anchor`, proporcionando tarifas suficientes como incentivo para incluir la transacción de compromiso en un bloque.
-          Se debe tener especial cuidado cuando se gasta a un tercero, porque esto vuelve a introducir la vulnerabilidad que se abordó al agregar el retraso de CSV a las salidas no ancla.
+          Se debe tener especial cuidado cuando se gasta a un tercero, porque esto vuelve a introducir la vulnerabilidad que se abordó al agregar el retraso de CSV a las salidas no `anchor`.
           - DEBE usar [replace-by-fee](https://github.com/bitcoin/bips/blob/master/bip-0125.mediawiki) u otro mecanismo en la transacción de gasto si resulta insuficiente para la inclusión oportuna en un bloque .
 
 <!-- omit in toc -->
@@ -184,51 +184,69 @@ A node:
     - if no *valid* commitment transaction contains an output corresponding to the HTLC.
       - MAY fail the corresponding incoming HTLC sooner.
 
+Un nodo:
+  - si la salida de HTLC de la transacción de compromiso se gasta usando la preimagen de pago, la salida se considera *resuelta irrevocablemente*:
+    - DEBE extraer la preimagen de pago de la `witness` de entrada de la transacción.
+  - si la salida HTLC de la transacción de compromiso *ha agotado el tiempo de espera* y no se ha *resuelto*:
+    - DEBE *resolver* la salida gastándola usando la transacción de tiempo de espera de HTLC.
+    - una vez que la transacción de resolución ha alcanzado una profundidad razonable:
+      - DEBE fallar el HTLC entrante correspondiente (si lo hay).
+      - DEBE resolver la salida de esa transacción de tiempo de espera de HTLC.
+      - DEBERÍA resolver la transacción de tiempo de espera de HTLC gastándola en una dirección conveniente.
+        - Nota: si la salida se gasta (como se recomienda), la salida se *resuelve* mediante la transacción de gasto; de lo contrario, se considera *resuelta* por la propia transacción de tiempo de espera de HTLC.
+      - DEBE esperar hasta que haya pasado el retraso `OP_CHECKSEQUENCEVERIFY` (según lo especificado por el campo `open_channel` `to_self_delay` del nodo remoto) antes de gastar esa salida de tiempo de espera de HTLC.
+  - para cualquier HTLC comprometido que NO tenga una salida en esta transacción de compromiso:
+    - una vez que la transacción de compromiso ha alcanzado una profundidad razonable:
+      - DEBE fallar el HTLC entrante correspondiente (si lo hay).
+    - si ninguna transacción de compromiso *válida* contiene una salida correspondiente al HTLC.
+      - PUEDE fallar antes el HTLC entrante correspondiente.
+
+
 <!-- omit in toc -->
 ### Racional
 
-The payment preimage either serves to prove payment (when the offering node originated the payment) or to redeem the corresponding incoming HTLC from another peer (when the offering node is forwarding the payment). Once a node has extracted the payment, it no longer cares about the fate of the HTLC-spending transaction itself.
+La preimagen de pago sirve para probar el pago (cuando el nodo de oferta originó el pago) o para canjear el HTLC entrante correspondiente de otro par (cuando el nodo de oferta está reenviando el pago). Una vez que un nodo ha extraído el pago, ya no le importa el destino de la transacción de gasto de HTLC en sí.
 
-In cases where both resolutions are possible (e.g. when a node receives payment success after timeout), either interpretation is acceptable; it is the responsibility of the recipient to spend it before this occurs.
+En los casos en los que ambas resoluciones son posibles (p. ej., cuando un nodo recibe un pago exitoso después del tiempo de espera), cualquiera de las interpretaciones es aceptable; es responsabilidad del destinatario gastarlo antes de que esto ocurra.
 
-The local HTLC-timeout transaction needs to be used to time out the HTLC (to prevent the remote node fulfilling it and claiming the funds) before the local node can back-fail any corresponding incoming HTLC, using `update_fail_htlc` (presumably with reason `permanent_channel_failure`), as detailed in [BOLT #2](02-peer-protocol.md#forwarding-htlcs).
-If the incoming HTLC is also on-chain, a node must simply wait for it to timeout: there is no way to signal early failure.
+La transacción de tiempo de espera de HTLC local debe usarse para agotar el tiempo de espera del HTLC (para evitar que el nodo remoto lo complete y reclame los fondos) antes de que el nodo local pueda hacer retroceder cualquier HTLC entrante correspondiente, usando `update_fail_htlc` (presumiblemente por la razón `permanent_channel_failure`), como se detalla en [BOLT #2](02-peer-protocol.md#forwarding-htlcs).
+Si el HTLC entrante también está en la cadena, un nodo simplemente debe esperar a que se agote el tiempo de espera: no hay forma de señalar una fallo temprano.
 
-If an HTLC is too small to appear in *any commitment transaction*, it can be safely failed immediately. Otherwise, if an HTLC isn't in the *local commitment transaction*, a node needs to make sure that a blockchain reorganization, or race, does not switch to a commitment transaction that does contain the HTLC before the node fails it (hence the wait). The requirement that the incoming HTLC be failed before its own timeout still applies as an upper bound.
+Si un HTLC es demasiado pequeño para aparecer en *cualquier transacción de compromiso*, se puede fallar de manera segura de inmediato. De lo contrario, si un HTLC no está en la *transacción de compromiso local*, un nodo debe asegurarse de que una reorganización de la blockchain, o `race`, no cambie a una transacción de compromiso que contenga el HTLC antes de que el nodo falle (de ahí la espera). El requisito de que el HTLC entrante falle antes de su propio tiempo de espera, aún se aplica como límite superior.
 
-## HTLC Output Handling: Local Commitment, Remote Offers
+## Manejo de salida de HTLC: compromiso local, ofertas remotas
 
-Each HTLC output can only be spent by the recipient, using the HTLC-success transaction, which it can only populate if it has the payment preimage. If it doesn't have the preimage (and doesn't discover it), it's the offerer's responsibility to spend the HTLC output once it's timed out.
+Cada resultado de HTLC solo puede ser gastado por el destinatario, utilizando la transacción `HTLC-success`, que solo puede completar si tiene la preimagen de pago. Si no tiene la preimagen (y no la descubre), es responsabilidad del oferente gastar la salida HTLC una vez que se agote el tiempo.
 
-There are several possible cases for an offered HTLC:
+Hay varios casos posibles para un HTLC ofrecido:
 
-1. The offerer is NOT irrevocably committed to it. The recipient will usually not know the preimage, since it will not forward HTLCs until they're fully committed. So using the preimage would reveal that this recipient is the final hop; thus, in this case, it's best to allow the HTLC to time out.
-2. The offerer is irrevocably committed to the offered HTLC, but the recipient has not yet committed to an outgoing HTLC. In this case, the recipient can either forward or timeout the offered HTLC.
-3. The recipient has committed to an outgoing HTLC, in exchange for the offered HTLC. In this case, the recipient must use the preimage, once it receives it from the outgoing HTLC; otherwise, it will lose funds by sending an outgoing payment without redeeming the incoming payment.
+1. El oferente NO se compromete irrevocablemente a ello. Por lo general, el destinatario no conocerá la preimagen, ya que no reenviará los HTLC hasta que estén completamente confirmados. Entonces, usar la preimagen revelaría que este destinatario es el salto final; por lo tanto, en este caso, es mejor permitir que el HTLC se agote.
+2. El oferente está irrevocablemente comprometido con el HTLC ofrecido, pero el destinatario aún no se ha comprometido con un HTLC saliente. En este caso, el destinatario puede reenviar o agotar el tiempo de espera del HTLC ofrecido.
+3. El destinatario se ha comprometido con un HTLC saliente, a cambio del HTLC ofrecido. En este caso, el destinatario deberá utilizar la preimagen, una vez que la reciba del HTLC saliente; de lo contrario, perderá fondos al enviar un pago saliente sin canjear el pago entrante.
 
 <!-- omit in toc -->
-### Requirements
+### Requisitos
 
-A local node:
-  - if it receives (or already possesses) a payment preimage for an unresolved HTLC output that it has been offered AND for which it has committed to an outgoing HTLC:
-    - MUST *resolve* the output by spending it, using the HTLC-success transaction.
-    - MUST NOT reveal its own preimage when it's not the final recipient.<sup>[Preimage-Extraction](https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-October/002857.html)</sup>
-    - MUST resolve the output of that HTLC-success transaction.
-  - otherwise:
-    - if the *remote node* is NOT irrevocably committed to the HTLC:
-      - MUST NOT *resolve* the output by spending it.
-  - SHOULD resolve that HTLC-success transaction output by spending it to a convenient address.
-  - MUST wait until the `OP_CHECKSEQUENCEVERIFY` delay has passed (as specified by the *remote node's* `open_channel`'s `to_self_delay` field), before spending that HTLC-success transaction output.
+Un nodo local:
+  - si recibe (o ya posee) una preimagen de pago por una salida HTLC no resuelta que se le ha ofrecido Y para la cual se ha comprometido con un HTLC saliente:
+    - DEBE *resolver* la salida gastándola, utilizando la transacción HTLC-success.
+    - NO DEBE revelar su propia preimagen cuando no es el destinatario final.<sup>[Preimage-Extraction](https://lists.linuxfoundation.org/pipermail/lightning-dev/2020-October/002857.html)</sup >
+    - DEBE resolver el resultado de esa transacción HTLC-success.
+  - de lo contrario:
+    - si el *nodo remoto* NO está irrevocablemente comprometido con el HTLC:
+      - NO DEBE *resolver* la salida gastándola.
+  - DEBERÍA resolver esa salida de transacción HTLC-success gastándola en una dirección conveniente.
+  - DEBE esperar hasta que haya pasado el retraso `OP_CHECKSEQUENCEVERIFY` (según lo especificado por el campo `to_self_delay` del *nodo remoto* `open_channel`), antes de gastar esa salida de transacción HTLC-success.
 
-If the output is spent (as is recommended), the output is *resolved* by the spending transaction, otherwise it's considered *resolved* by the HTLC-success transaction itself.
+Si se gasta la salida (como se recomienda), la transacción de gasto *resuelve* la salida; de lo contrario, se considera *resuelta* por la propia transacción HTLC-success.
 
-If it's NOT otherwise resolved, once the HTLC output has expired, it is considered *irrevocably resolved*.
+Si NO se resuelve de otra manera, una vez que la salida HTLC haya expirado, se considera *resuelto irrevocablemente*.
 
-# Unilateral Close Handling: Remote Commitment Transaction
+# Manejo cercano unilateral: Transacción de compromiso remoto
 
-The *remote node's* commitment transaction *resolves* the funding transaction output.
+La transacción de compromiso del *nodo remoto* *resuelve* el resultado de la transacción de financiación.
 
-There are no delays constraining node behavior in this case, so it's simpler for a node to handle than the case in which it discovers its local commitment transaction (see [Unilateral Close Handling: Local Commitment Transaction](#unilateral-close-handling-local-commitment-transaction)).
+En este caso, no hay demoras que restrinjan el comportamiento del nodo, por lo que es más fácil de manejar para un nodo que en el caso en que descubre su transacción de compromiso local (consulte [Manejo de Cierre Unilateral: Transacción de Compromiso Local](#manejo-de-cierre-unilateral-transacción-de-compromiso-local)).
 
 <!-- omit in toc -->
 ## Requirements
