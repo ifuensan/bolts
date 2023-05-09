@@ -1,14 +1,9 @@
-# Lightning Network In-Progress Specifications
+# Lightning Network Especificaciones En Progreso
 
-The specifications are currently a work-in-progress and currently being
-drafted.
+### [Comience aquí para ver el índice](00-introduction.md)
 
-Pull requests and comments welcome, seeking input from community stakeholders.
-
-Discussion available on the [lightning-dev mailing list](https://lists.linuxfoundation.org/mailman/listinfo/lightning-dev).
-
-### [Start here for Table of Contents](00-introduction.md)
-
-![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
+![Licencia Creative Commons](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
-This work is licensed under a [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/).
+Este trabajo está bajo una [Licencia Creative Commons Attribution 4.0 International](http://creativecommons.org/licenses/by/4.0/).
+
+La traducción de este trabajo ha sido realizada por @ifuensan, se acepta todo tipo de ayuda y contribuciones que aporten a la comunidad de habla hispana.
