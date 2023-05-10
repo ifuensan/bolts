@@ -331,35 +331,38 @@ The `node_id` for the signature verification is taken from the corresponding `ch
 
 ### Requirements
 
-The origin node:
-  - MUST NOT send a created `channel_update` before `channel_ready` has been received.
-  - MAY create a `channel_update` to communicate the channel parameters to the channel peer, even though the channel has not yet been announced (i.e. the `announce_channel` bit was not set).
-    - MUST set the `short_channel_id` to either an `alias` it has received from the peer, or the real channel `short_channel_id`.
-    - MUST set `dont_forward` to 1 in `message_flags`
-    - MUST NOT forward such a `channel_update` to other peers, for privacy reasons.
-    - Note: such a `channel_update`, one not preceded by a `channel_announcement`, is invalid to any other peer and would be discarded.
-  - MUST set `signature` to the signature of the double-SHA256 of the entire remaining packet after `signature`, using its own `node_id`.
-  - MUST set `chain_hash` AND `short_channel_id` to match the 32-byte hash AND 8-byte channel ID that uniquely identifies the channel specified in the `channel_announcement` message.
-  - if the origin node is `node_id_1` in the message:
-    - MUST set the `direction` bit of `channel_flags` to 0.
-  - otherwise:
-    - MUST set the `direction` bit of `channel_flags` to 1.
-  - MUST set `htlc_maximum_msat` to the maximum value it will send through this channel for a single HTLC.
-    - MUST set this to less than or equal to the channel capacity.
-    - MUST set this to less than or equal to `max_htlc_value_in_flight_msat` it received from the peer.
-  - MUST set `must_be_one` in `message_flags` to 1.
-  - MUST set bits in `channel_flags` and `message_flags` that are not assigned a meaning to 0.
-  - MAY create and send a `channel_update` with the `disable` bit set to 1, to signal a channel's temporary unavailability (e.g. due to a loss of connectivity) OR permanent unavailability (e.g. prior to an on-chain settlement).
-    - MAY sent a subsequent `channel_update` with the `disable` bit set to 0 to re-enable the channel.
-  - MUST set `timestamp` to greater than 0, AND to greater than any previously-sent `channel_update` for this `short_channel_id`.
-    - SHOULD base `timestamp` on a UNIX timestamp.
-  - MUST set `cltv_expiry_delta` to the number of blocks it will subtract from an incoming HTLC's `cltv_expiry`.
-  - MUST set `htlc_minimum_msat` to the minimum HTLC value (in millisatoshi) that the channel peer will accept.
-  - MUST set `fee_base_msat` to the base fee (in millisatoshi) it will charge for any HTLC.
-  - MUST set `fee_proportional_millionths` to the amount (in millionths of a satoshi) it will charge per transferred satoshi.
-  - SHOULD NOT create redundant `channel_update`s
-  - If it creates a new `channel_update` with updated channel parameters:
-    - SHOULD keep accepting the previous channel parameters for 10 minutes
+El nodo de origen:
+  - NO DEBE enviar un `channel_update` creado antes de que se haya recibido `channel_ready`.
+  - PUEDE crear un `channel_update` para comunicar los parámetros del canal al compañero del canal, aunque el canal aún no se haya anunciado (es decir, el bit `announce_channel` no se ha establecido).
+    - DEBE establecer `short_channel_id` en un `alias` que haya recibido del par, o en el canal real `short_channel_id`.
+    - DEBE establecer `dont_forward` en 1 en `message_flags`
+    - NO DEBE reenviar tal `channel_update` a otros pares, por razones de privacidad.
+    - Nota: tal `channel_update`, uno que no esté precedido por un `channel_announcement`, no es válido para ningún otro par y sería descartado.
+  - DEBE establecer `firma` en la firma del doble-SHA256 del paquete restante completo después de `signature`, utilizando su propio `node_id`.
+  - DEBE configurar `chain_hash` Y `short_channel_id` para que coincida con el hash de 32 bytes Y el ID de canal de 8 bytes que identifica de forma única el canal especificado en el mensaje `channel_announcement`.
+  - si el nodo de origen es `node_id_1` en el mensaje:
+    - DEBE establecer el bit de `direction` de `channel_flags` en 0.
+  - de lo contrario:
+    - DEBE establecer el bit de `direction` de `channel_flags` en 1.
+  - DEBE establecer `htlc_maximum_msat` en el valor máximo que enviará a través de este canal para un solo HTLC.
+    - DEBE establecerlo en un valor inferior o igual a la capacidad del canal.
+    - DEBE establecer esto en un valor menor o igual a `max_htlc_value_in_flight_msat` que recibió del par.
+  - DEBE establecer `must_be_one` en `message_flags` en 1.
+  - DEBE establecer bits en `channel_flags` y `message_flags` que no tienen asignado un significado a 0.
+  - PUEDE crear y enviar un `channel_update` con el bit `disable` establecido en 1, para señalar la indisponibilidad temporal de un canal (p. ej., debido a una pérdida de conectividad) O la indisponibilidad permanente (p. ej., antes de una liquidación en cadena).
+    - DEBIÓ enviar un `channel_update` posterior con el bit `disable` establecido en 0 para volver a habilitar el canal.
+  - DEBE establecer `timestamp` en un valor mayor que 0 Y mayor que cualquier `channel_update` enviado previamente para este `short_channel_id`.
+    - DEBERÍA basar `timestamp` en una marca de tiempo UNIX.
+  - DEBE establecer `cltv_expiry_delta` en el número de bloques que restará de `cltv_expiry` de un HTLC entrante.
+  - DEBE establecer `htlc_minimum_msat` en el valor mínimo de HTLC (en milisatoshi) que aceptará el par del canal.
+  - DEBE establecer `fee_base_msat` en la tarifa base (en millisatoshi) que cobrará por cualquier HTLC.
+  - DEBE establecer `fee_proportional_millionths` en la cantidad (en millonésimas de satoshi) que cobrará por satoshi transferido.
+  - NO DEBERÍA crear `channel_update`s redundantes
+  - Si crea un nuevo `channel_update` con parámetros de canal actualizados:
+    - DEBE seguir aceptando los parámetros del canal anterior durante 10 minutos
+
+
+
 
 The receiving node:
   - if the `short_channel_id` does NOT match a previous `channel_announcement`, OR if the channel has been closed in the meantime:
