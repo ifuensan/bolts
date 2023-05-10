@@ -176,19 +176,19 @@ The receiving node:
 
 ### Rationale
 
-Both nodes are required to sign to indicate they are willing to route other payments via this channel (i.e. be part of the public network); requiring their Bitcoin signatures proves that they control the channel.
+Se requiere que ambos nodos firmen para indicar que están dispuestos a enrutar otros pagos a través de este canal (es decir, ser parte de la red pública); Requerir sus firmas de bitcoin demuestra que controlan el canal.
 
-The blacklisting of conflicting nodes disallows multiple different announcements. Such conflicting announcements should never be broadcast by any node, as this implies that keys have leaked.
+La lista negra de los nodos conflictivos no permite múltiples anuncios diferentes. Tales anuncios conflictivos nunca deben ser transmitidos por ningún nodo, ya que esto implica que las claves se han filtrado.
 
-While channels should not be advertised before they are sufficiently deep, the requirement against rebroadcasting only applies if the transaction has not moved to a different block.
+Si bien los canales no deben anunciarse antes de que sean lo suficientemente profundos, el requisito contra el retransmisión solo se aplica si la transacción no se ha movido a un bloque diferente. 
 
-In order to avoid storing excessively large messages, yet still allow for reasonable future expansion, nodes are permitted to restrict rebroadcasting (perhaps statistically).
+Para evitar almacenar mensajes excesivamente grandes, pero aún así permitir una expansión futura razonable, los nodos pueden restringir la retransmisión (tal vez estadísticamente).
 
-New channel features are possible in the future: backwards compatible (or optional) features will have _odd_ feature bits, while incompatible features will have _even_ feature bits (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide)).
+Las nuevas características del canal son posibles en el futuro: las características compatibles hacia atrás (u opcional) tendrán `feature bits` _impares_, mientras que las características incompatibles tendrán `feature bits` _pares_  (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide)). <!-- TODO -->
 
-A delay of 12 blocks is used when forgetting a channel on funding output spend as to permit a new `channel_announcement` to propagate which indicates this channel was spliced.
+Se utiliza un retraso de 12 bloques al olvidar un canal en la `funding output` para permitir que un nuevo `channel_announcement` propague que indica que este canal fue unido.
 
-## The `node_announcement` Message
+## El mensaje `node_announcement`
 
 This gossip message allows a node to indicate extra data associated with it, in addition to its public key. To avoid trivial denial of service attacks, nodes not associated with an already known channel are ignored.
 
