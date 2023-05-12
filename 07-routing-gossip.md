@@ -108,7 +108,7 @@ Probar la existencia de un canal entre `node_1` y `node_2` requiere:
 2. probar que `node_1` posee `bitcoin_key_1`
 3. probar que `node_2` posee `bitcoin_key_2`
 
-Suponiendo que todos los nodos conocen los resultados de las transacciones no gastadas, la primera prueba se logra cuando un nodo encuentra el resultado proporcionado por `short_channel_id` y verifica que, de hecho, es un resultado de transacción de financiación P2WSH para esas claves especificadas en [BOLT #3](03 -transactions.md#funding-transaction-output). <!-- TODO -->
+Suponiendo que todos los nodos conocen los resultados de las transacciones no gastadas, la primera prueba se logra cuando un nodo encuentra el resultado proporcionado por `short_channel_id` y verifica que, de hecho, es un resultado de transacción de financiación P2WSH para esas claves especificadas en [BOLT #3](03 -transactions.md#funding-transaction-output). <!-- TODO: Solucionar enlace -->
 
 Las dos últimas pruebas se logran a través de firmas explícitas: `bitcoin_signature_1` y `bitcoin_signature_2` se generan para cada `bitcoin_key` y se firma cada uno de los `node_id` correspondientes.
 
@@ -132,49 +132,49 @@ También es necesario demostrar que `node_1` y `node_2` están de acuerdo con el
 
 ### Requisitos
 
-The origin node:
-  - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain that the channel was opened within:
-    - for the _Bitcoin blockchain_:
-      - MUST set `chain_hash` value (encoded in hex) equal to `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000`.
-  - MUST set `short_channel_id` to refer to the confirmed funding transaction, as specified in [BOLT #2](02-peer-protocol.md#the-channel_ready-message).
-    - Note: the corresponding output MUST be a P2WSH, as described in [BOLT #3](03-transactions.md#funding-transaction-output).
-  - MUST set `node_id_1` and `node_id_2` to the public keys of the two nodes operating the channel, such that `node_id_1` is the lexicographically-lesser of the two compressed keys sorted in ascending lexicographic order.
-  - MUST set `bitcoin_key_1` and `bitcoin_key_2` to `node_id_1` and `node_id_2`'s respective `funding_pubkey`s.
-  - MUST compute the double-SHA256 hash `h` of the message, beginning at offset 256, up to the end of the message.
-    - Note: the hash skips the 4 signatures but hashes the rest of the message, including any future fields appended to the end.
-  - MUST set `node_signature_1` and `node_signature_2` to valid signatures of the hash `h` (using `node_id_1` and `node_id_2`'s respective secrets).
-  - MUST set `bitcoin_signature_1` and `bitcoin_signature_2` to valid signatures of the hash `h` (using `bitcoin_key_1` and `bitcoin_key_2`'s respective secrets).
-  - MUST set `features` based on what features were negotiated for this channel, according to [BOLT #9](09-features.md#assigned-features-flags)
-  - MUST set `len` to the minimum length required to hold the `features` bits it sets.
+El nodo de origen:
+  - DEBE establecer `chain_hash` en el hash de 32 bytes que identifica de forma única la cadena en la que se abrió el canal:
+    - para la _cadena de bloques de Bitcoin_:
+      - DEBE establecer el valor `chain_hash` (codificado en hexadecimal) igual a `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000`.
+  - DEBE establecer `short_channel_id` para hacer referencia a la transacción de financiación confirmada, como se especifica en [BOLT #2](02-peer-protocol.md#the-channel_ready-message).
+    - Nota: la salida correspondiente DEBE ser un P2WSH, como se describe en [BOLT #3](03-transactions.md#funding-transaction-output).
+  - DEBE establecer `node_id_1` y `node_id_2` en las claves públicas de los dos nodos que operan el canal, de modo que `node_id_1` sea lexicográficamente menor de las dos claves comprimidas ordenadas en orden lexicográfico ascendente.
+  - DEBE establecer `bitcoin_key_1` y `bitcoin_key_2` en `node_id_1` y `node_id_2` respectivamente `funding_pubkey`s.
+  - DEBE calcular el hash doble-SHA256 `h` del mensaje, comenzando en el desplazamiento 256, hasta el final del mensaje.
+    - Nota: el hash omite las 4 firmas, pero aplica un hash al resto del mensaje, incluidos los campos futuros añadidos al final.
+  - DEBE establecer `node_signature_1` y `node_signature_2` en firmas válidas del hash `h` (usando los respectivos secretos de `node_id_1` y `node_id_2`).
+  - DEBE establecer `bitcoin_signature_1` y `bitcoin_signature_2` en firmas válidas del hash `h` (utilizando los respectivos secretos de `bitcoin_key_1` y `bitcoin_key_2`).
+  - DEBE establecer `features` en función de las funciones que se negociaron para este canal, de acuerdo con [BOLT #9](09-features.md#assigned-features-flags)
+  - DEBE establecer `len` en la longitud mínima requerida para contener los `feature bits` que establece.
 
-The receiving node:
-  - MUST verify the integrity AND authenticity of the message by verifying the signatures.
-  - if there is an unknown even bit in the `features` field:
-    - MUST NOT attempt to route messages through the channel.
-  - if the `short_channel_id`'s output does NOT correspond to a P2WSH (using `bitcoin_key_1` and `bitcoin_key_2`, as specified in [BOLT #3](03-transactions.md#funding-transaction-output)) OR the output is spent:
-    - MUST ignore the message.
-  - if the specified `chain_hash` is unknown to the receiver:
-    - MUST ignore the message.
-  - otherwise:
-    - if `bitcoin_signature_1`, `bitcoin_signature_2`, `node_signature_1` OR `node_signature_2` are invalid OR NOT correct:
-      - SHOULD send a `warning`.
-      - MAY close the connection.
-      - MUST ignore the message.
-    - otherwise:
-      - if `node_id_1` OR `node_id_2` are blacklisted:
-        - SHOULD ignore the message.
-      - otherwise:
-        - if the transaction referred to was NOT previously announced as a channel:
-          - SHOULD queue the message for rebroadcasting.
-          - MAY choose NOT to for messages longer than the minimum expected length.
-      - if it has previously received a valid `channel_announcement`, for the same transaction, in the same block, but for a different `node_id_1` or `node_id_2`:
-        - SHOULD blacklist the previous message's `node_id_1` and `node_id_2`, as well as this `node_id_1` and `node_id_2` AND forget any channels connected to them.
-      - otherwise:
-        - SHOULD store this `channel_announcement`.
-  - once its funding output has been spent OR reorganized out:
-    - SHOULD forget a channel after a 12-block delay.
+El nodo receptor:
+  - DEBE verificar la integridad Y la autenticidad del mensaje verificando las firmas.
+  - si hay un bit par desconocido en el campo `features`:
+    - NO DEBE intentar enrutar mensajes a través del canal.
+  - si la salida de `short_channel_id` NO corresponde a un P2WSH (usando `bitcoin_key_1` y `bitcoin_key_2`, como se especifica en [BOLT #3](03-transactions.md#funding-transaction-output)) O la salida se gasta:
+    - DEBE ignorar el mensaje.
+  - si el `chain_hash` especificado es desconocido para el receptor:
+    - DEBE ignorar el mensaje.
+  - de lo contrario:
+    - si `bitcoin_signature_1`, `bitcoin_signature_2`, `node_signature_1` O `node_signature_2` no son válidos O NO son correctos:
+      - DEBERÍA enviar una `warning`.
+      - PUEDE cerrar la conexión.
+      - DEBE ignorar el mensaje.
+    - de lo contrario:
+      - si `node_id_1` O `node_id_2` están en la lista negra:
+        - DEBE ignorar el mensaje.
+      - de lo contrario:
+        - si la transacción a la que se hace referencia NO fue previamente anunciada como canal:
+          - DEBERÍA poner en cola el mensaje para su retransmisión.
+          - PUEDE elegir NO para mensajes más largos que la longitud mínima esperada.
+      - si ha recibido previamente un `channel_announcement` válido, para la misma transacción, en el mismo bloque, pero para un `node_id_1` o `node_id_2` diferente:
+        - DEBE incluir en la lista negra `node_id_1` y `node_id_2` del mensaje anterior, así como este `node_id_1` y `node_id_2` Y olvidar cualquier canal conectado a ellos.
+      - de lo contrario:
+        - DEBE almacenar este `channel_announcement`.
+  - una vez que su producción de fondos se haya gastado O reorganizado:
+    - DEBE olvidar un canal después de un retraso de 12 bloques.
 
-### Rationale
+### Racional
 
 Se requiere que ambos nodos firmen para indicar que están dispuestos a enrutar otros pagos a través de este canal (es decir, ser parte de la red pública); Requerir sus firmas de bitcoin demuestra que controlan el canal.
 
@@ -184,13 +184,13 @@ Si bien los canales no deben anunciarse antes de que sean lo suficientemente pro
 
 Para evitar almacenar mensajes excesivamente grandes, pero aún así permitir una expansión futura razonable, los nodos pueden restringir la retransmisión (tal vez estadísticamente).
 
-Las nuevas características del canal son posibles en el futuro: las características compatibles hacia atrás (u opcional) tendrán `feature bits` _impares_, mientras que las características incompatibles tendrán `feature bits` _pares_  (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide)). <!-- TODO -->
+Las nuevas características del canal son posibles en el futuro: las características compatibles hacia atrás (u opcional) tendrán `feature bits` _impares_, mientras que las características incompatibles tendrán `feature bits` _pares_  (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide)). <!-- TODO: Solucionar enlace -->
 
 Se utiliza un retraso de 12 bloques al olvidar un canal en la `funding output` para permitir que un nuevo `channel_announcement` propague que indica que este canal fue unido.
 
 ## El mensaje `node_announcement`
 
-This gossip message allows a node to indicate extra data associated with it, in addition to its public key. To avoid trivial denial of service attacks, nodes not associated with an already known channel are ignored.
+Este mensaje de chismes permite que un nodo indique datos adicionales asociados con él, además de su clave pública. Para evitar ataques triviales de denegación de servicio, se ignoran los nodos no asociados con un canal ya conocido.
 
 1. type: 257 (`node_announcement`)
 2. data:
@@ -204,21 +204,21 @@ This gossip message allows a node to indicate extra data associated with it, in 
    * [`u16`:`addrlen`]
    * [`addrlen*byte`:`addresses`]
 
-`timestamp` allows for the ordering of messages, in the case of multiple announcements. `rgb_color` and `alias` allow intelligence services to assign nodes colors like black and cool monikers like 'IRATEMONK' and 'WISTFULTOLL'.
+`timestamp` permite ordenar los mensajes, en el caso de múltiples anuncios. `rgb_color` y `alias` permiten que los servicios de inteligencia asignen colores a los nodos como el negro y apodos geniales como 'IRATEMONK' y 'WISTFULTOLL'.
 
-`addresses` allows a node to announce its willingness to accept incoming network connections: it contains a series of `address descriptor`s for connecting to the node. The first byte describes the address type and is followed by the appropriate number of bytes for that type.
+`addresses` permite que un nodo anuncie su voluntad de aceptar conexiones de red entrantes: contiene una serie de `address descriptor` para conectarse al nodo. El primer byte describe el tipo de dirección y es seguido por el número apropiado de bytes para ese tipo.
 
-The following `address descriptor` types are defined:
+Se definen los siguientes tipos de `address descriptor`:
 
-   * `1`: ipv4; data = `[4:ipv4_addr][2:port]` (length 6)
-   * `2`: ipv6; data = `[16:ipv6_addr][2:port]` (length 18)
-   * `3`: Deprecated (length 12). Used to contain Tor v2 onion services.
-   * `4`: Tor v3 onion service; data = `[35:onion_addr][2:port]` (length 37)
-       * version 3 ([prop224](https://gitweb.torproject.org/torspec.git/tree/proposals/224-rend-spec-ng.txt)) onion service addresses; Encodes:
+   * `1`: ipv4; data = `[4:ipv4_addr][2:port]` (longitud 6)
+   * `2`: ipv6; data = `[16:ipv6_addr][2:port]` (longitud 18)
+   * `3`: Obsoleto (longitud 12). Se utiliza para contener servicios de cebolla Tor v2.
+   * `4`: Tor v3 onion service; data = `[35:onion_addr][2:port]` (longitud 37)
+       * version 3 ([prop224](https://gitweb.torproject.org/torspec.git/tree/proposals/224-rend-spec-ng.txt)) direcciones de servicio de cebolla; Codifica:
          `[32:32_byte_ed25519_pubkey] || [2:checksum] || [1:version]`, where `checksum = sha3(".onion checksum" || pubkey || version)[:2]`.
-   * `5`: DNS hostname; data = `[1:hostname_len][hostname_len:hostname][2:port]` (length up to 258)
-       * `hostname` bytes MUST be ASCII characters.
-       * Non-ASCII characters MUST be encoded using Punycode: https://en.wikipedia.org/wiki/Punycode
+   * `5`: nombre del host DNS; data = `[1:hostname_len][hostname_len:hostname][2:port]` (longitud hasta 258)
+       * `hostname` los bytes DEBEN ser caracteres ASCII.
+       * Los caracteres que no son ASCII DEBEN codificarse con Punycode: https://en.wikipedia.org/wiki/Punycode
 
 ### Requirements
 
