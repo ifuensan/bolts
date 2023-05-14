@@ -1,3 +1,4 @@
+<!-- omit in toc -->
 # BOLT #7: Descubrimiento de canales y nodos P2P
 
 Esta especificación describe mecanismos simples de descubrimiento de nodos, descubrimiento de canales y actualización de canales que no dependen de un tercero para difundir la información.
@@ -14,21 +15,20 @@ Para soportar el descubrimiento de canales y nodos, se admiten tres *mensajes de
  - Para el descubrimiento de canales, los pares en la red intercambian mensajes `channel_announcement` que contienen información sobre nuevos canales entre los dos nodos. También pueden intercambiar mensajes `channel_update`, que actualizan la información sobre un canal. Solo puede haber un `channel_announcement` válido para cualquier canal, pero se esperan al menos dos mensajes `channel_update`.
 
 
-
+<!-- omit in toc -->
 # Table of Contents
 
-  * [Definition of `short_channel_id`](#definition-of-short_channel_id)
-  * [The `announcement_signatures` Message](#the-announcement_signatures-message)
-  * [The `channel_announcement` Message](#the-channel_announcement-message)
-  * [The `node_announcement` Message](#the-node_announcement-message)
-  * [The `channel_update` Message](#the-channel_update-message)
-  * [Query Messages](#query-messages)
-  * [Initial Sync](#initial-sync)
-  * [Rebroadcasting](#rebroadcasting)
-  * [HTLC Fees](#htlc-fees)
-  * [Pruning the Network View](#pruning-the-network-view)
-  * [Recommendations for Routing](#recommendations-for-routing)
-  * [References](#references)
+- [Definición del `short_channel_id`](#definición-del-short_channel_id)
+- [El mensaje `announcement_signatures`](#el-mensaje-announcement_signatures)
+- [El mensaje `channel_announcement`](#el-mensaje-channel_announcement)
+- [El mensaje `node_announcement`](#el-mensaje-node_announcement)
+- [El mensajae `channel_update`](#el-mensajae-channel_update)
+- [Query Messages](#query-messages)
+- [Initial Sync](#initial-sync)
+- [Rebroadcasting](#rebroadcasting)
+- [HTLC Fees](#htlc-fees)
+- [Pruning the Network View](#pruning-the-network-view)
+- [Recommendations for Routing](#recommendations-for-routing)
 
 ## Definición del `short_channel_id`
 
@@ -43,6 +43,7 @@ Cada componente está impreso como un número decimal y separados entre sí por 
 Por ejemplo, un `short_channel_id` podría escribirse como `539268x845x1`, lo que indica un canal en la salida 1 de la transacción en el índice 845 del bloque en la altura 539268.
 
 
+<!-- omit in toc -->
 ### Racional
 
 El formato legible para humanos del `short_channel_id`, está diseñado para que al hacer doble clic o tocarlo dos veces, se seleccione la ID completa en la mayoría de los sistemas.
@@ -63,6 +64,7 @@ Contiene las firmas necesarias, por parte del remitente, para construir el mensa
 
 La voluntad del nodo iniciador de anunciar el canal se señala durante la apertura del canal configurando el bit `announce_channel` en `channel_flags` (ver [BOLT #2](02-peer-protocol.md#the-open_channel-message)).
 
+<!-- omit in toc -->
 ### Requisitos
 
 El mensaje `announcement_signatures` se crea construyendo un mensaje `channel_announcement`, correspondiente al canal recién establecido, y firmándolo con los secretos que coinciden con el `node_id` y la `bitcoin_key` de un punto final. Una vez firmado, se puede enviar el mensaje `announcement_signatures`.
@@ -93,6 +95,7 @@ Un nodo receptor:
       - DEBE ignorarlo.
 
 
+<!-- omit in toc -->
 ### Racional
 
 La razón para permitir el aplazamiento de un `announcement_signatures` prematuro es que una versión anterior de la especificación no requería esperar a que se bloqueara la recepción de la financiación: aplazarlo en lugar de ignorarlo permite la compatibilidad con este comportamiento.
@@ -130,6 +133,7 @@ También es necesario demostrar que `node_1` y `node_2` están de acuerdo con el
     * [`point`:`bitcoin_key_2`]
 
 
+<!-- omit in toc -->
 ### Requisitos
 
 El nodo de origen:
@@ -174,6 +178,7 @@ El nodo receptor:
   - una vez que su producción de fondos se haya gastado O reorganizado:
     - DEBE olvidar un canal después de un retraso de 12 bloques.
 
+<!-- omit in toc -->
 ### Racional
 
 Se requiere que ambos nodos firmen para indicar que están dispuestos a enrutar otros pagos a través de este canal (es decir, ser parte de la red pública); Requerir sus firmas de bitcoin demuestra que controlan el canal.
@@ -220,84 +225,86 @@ Se definen los siguientes tipos de `address descriptor`:
        * `hostname` los bytes DEBEN ser caracteres ASCII.
        * Los caracteres que no son ASCII DEBEN codificarse con Punycode: https://en.wikipedia.org/wiki/Punycode
 
-### Requirements
+<!-- omit in toc -->
+### Requisitos
 
-The origin node:
-  - MUST set `timestamp` to be greater than that of any previous `node_announcement` it has previously created.
-    - MAY base it on a UNIX timestamp.
-  - MUST set `signature` to the signature of the double-SHA256 of the entire remaining packet after `signature` (using the key given by `node_id`).
-  - MAY set `alias` AND `rgb_color` to customize its appearance in maps and graphs.
-    - Note: the first byte of `rgb_color` is the red value, the second byte is the green value, and the last byte is the blue value.
-  - MUST set `alias` to a valid UTF-8 string, with any `alias` trailing-bytes equal to 0.
-  - SHOULD fill `addresses` with an address descriptor for each public network address that expects incoming connections.
-  - MUST set `addrlen` to the number of bytes in `addresses`.
-  - MUST place address descriptors in ascending order.
-  - SHOULD NOT place any zero-typed address descriptors anywhere.
-  - SHOULD use placement only for aligning fields that follow `addresses`.
-  - MUST NOT create a `type 1`, `type 2` or `type 5` address descriptor with `port` equal to 0.
-  - SHOULD ensure `ipv4_addr` AND `ipv6_addr` are routable addresses.
-  - MUST set `features` according to [BOLT #9](09-features.md#assigned-features-flags)
-  - SHOULD set `flen` to the minimum length required to hold the `features` bits it sets.
-  - SHOULD not announce a Tor v2 onion service.
-  - MUST NOT announce more than one `type 5` DNS hostname.
+El nodo de origen:
+  - DEBE configurar `timestamp` para que sea mayor que cualquier `node_announcement` anterior que haya creado anteriormente.
+    - PUEDE basarse en una marca de tiempo UNIX.
+  - DEBE establecer `signature` en la firma de doble-SHA256 del paquete restante completo después de `firma` (utilizando la clave proporcionada por `node_id`).
+  - PUEDE establecer `alias` Y `rgb_color` para personalizar su apariencia en mapas y gráficos.
+    - Nota: el primer byte de `rgb_color` es el valor rojo, el segundo byte es el valor verde y el último byte es el valor azul.
+  - DEBE establecer `alias` en una cadena UTF-8 válida, con cualquier byte final de `alias` igual a 0.
+  - DEBE llenar `addresses` con un descriptor de dirección para cada dirección de red pública que espera conexiones entrantes.
+  - DEBE establecer `addrlen` en el número de bytes en `addresses`.
+  - DEBE colocar los descriptores de direcciones en orden ascendente.
+  - NO DEBE colocar ningún descriptor de dirección de tipo cero en ninguna parte.
+  - DEBERÍA usar la ubicación solo para alinear campos que siguen a `addresses`.
+  - NO DEBE crear un descriptor de dirección `type 1`, `type 2` o `type 5` con `port` igual a 0.
+  - DEBERÍA asegurarse de que `ipv4_addr` Y `ipv6_addr` sean direcciones enrutables.
+  - DEBE configurar `features` de acuerdo con [BOLT #9](09-features.md#assigned-features-flags)
+  - DEBERÍA configurar `flen` a la longitud mínima requerida para contener los bits de `features` que establece.
+  - NO DEBERÍA anunciar un servicio de cebolla Tor v2.
+  - NO DEBE anunciar más de un nombre de host DNS `type 5`.
 
-The receiving node:
-  - if `node_id` is NOT a valid compressed public key:
-    - SHOULD send a `warning`.
-    - MAY close the connection.
-    - MUST NOT process the message further.
-  - if `signature` is NOT a valid signature (using `node_id` of the double-SHA256 of the entire message following the `signature` field, including
-any future fields appended to the end):
-    - SHOULD send a `warning`.
-    - MAY close the connection.
-    - MUST NOT process the message further.
-  - if `features` field contains _unknown even bits_:
-    - SHOULD NOT connect to the node.
-    - Unless paying a [BOLT #11](11-payment-encoding.md) invoice which does not have the same bit(s) set, MUST NOT attempt to send payments _to_ the node.
-    - MUST NOT route a payment _through_ the node.
-  - SHOULD ignore the first `address descriptor` that does NOT match the types defined above.
-  - if `addrlen` is insufficient to hold the address descriptors of the known types:
-    - SHOULD send a `warning`.
-    - MAY close the connection.
-  - if `port` is equal to 0:
-    - SHOULD ignore `ipv6_addr` OR `ipv4_addr` OR `hostname`.
-  - if `node_id` is NOT previously known from a `channel_announcement` message, OR if `timestamp` is NOT greater than the last-received `node_announcement` from this `node_id`:
-    - SHOULD ignore the message.
-  - otherwise:
-    - if `timestamp` is greater than the last-received `node_announcement` from this `node_id`:
-      - SHOULD queue the message for rebroadcasting.
-      - MAY choose NOT to queue messages longer than the minimum expected length.
-  - MAY use `rgb_color` AND `alias` to reference nodes in interfaces.
-    - SHOULD insinuate their self-signed origins.
-  - SHOULD ignore Tor v2 onion services.
-  - if more than one `type 5` address is announced:
-    - SHOULD ignore the additional data.
-    - MUST not forward the `node_announcement`.
+El nodo receptor:
+  - si `node_id` NO es una clave pública comprimida válida:
+    - DEBERÍA enviar una `warning`.
+    - PUEDE cerrar la conexión.
+    - NO DEBE seguir procesando el mensaje.
+  - si `signature` NO es una firma válida (usando `node_id` del doble-SHA256 de todo el mensaje que sigue al campo `signature`, incluido
+cualquier campo futuro añadido al final):
+    - DEBERÍA enviar una `warning`.
+    - PUEDE cerrar la conexión.
+    - NO DEBE seguir procesando el mensaje.
+  - si el campo `features` contiene _bits pares desconocidos_:
+    - NO DEBE conectarse al nodo.
+    - A menos que pague una factura [BOLT #11](11-payment-encoding.md) que no tenga los mismos bits establecidos, NO DEBE intentar enviar pagos _al_ nodo.
+    - NO DEBE enrutar un pago _a través_ del nodo.
+  - DEBE ignorar el primer 'descriptor de dirección' que NO coincide con los tipos definidos anteriormente.
+  - si `addrlen` es insuficiente para contener los descriptores de dirección de los tipos conocidos:
+    - DEBERÍA enviar una `warning`.
+    - PUEDE cerrar la conexión.
+  - si `port` es igual a 0:
+    - DEBE ignorar `ipv6_addr` O `ipv4_addr` O `hostname`.
+  - si `node_id` NO se conoce previamente de un mensaje `channel_announcement`, O si `timestamp` NO es mayor que el último `node_announcement` recibido de este `node_id`:
+    - DEBE ignorar el mensaje.
+  - de lo contrario:
+    - si `timestamp` es mayor que el último `node_announcement` recibido de este `node_id`:
+      - DEBERÍA poner en cola el mensaje para su retransmisión.
+      - PUEDE elegir NO poner en cola mensajes más largos que la longitud mínima esperada.
+  - PUEDE usar `rgb_color` Y `alias` para hacer referencia a los nodos en las interfaces.
+    - DEBERÍA insinuar sus orígenes autofirmados.
+  - DEBE ignorar los servicios de cebolla de Tor v2.
+  - si se anuncia más de una dirección `type 5`:
+    - DEBE ignorar los datos adicionales.
+    - NO DEBE reenviar el `node_announcement`.
 
-### Rationale
+<!-- omit in toc -->
+### Racional
 
-New node features are possible in the future: backwards compatible (or optional) ones will have _odd_ `feature` _bits_, incompatible ones will have _even_ `feature` _bits_. These will be propagated normally; incompatible feature bits here refer to the nodes, not the `node_announcement` message itself.
+Las nuevas funciones de nodo son posibles en el futuro: las compatibles con versiones anteriores (u opcionales) tendrán _bits_ de `feature` _impares_, las incompatibles tendrán _bits de `feature` _par_. Estos se propagarán normalmente; Los bits de características incompatibles aquí se refieren a los nodos, no al mensaje `node_announcement` en sí.
 
-New address types may be added in the future; as address descriptors have to be ordered in ascending order, unknown ones can be safely ignored. Additional fields beyond `addresses` may also be added in the future—with optional padding within `addresses`, if they require certain alignment.
+Es posible que se agreguen nuevos tipos de direcciones en el futuro; como los descriptores de direcciones deben ordenarse en orden ascendente, los desconocidos pueden ignorarse con seguridad. En el futuro también se pueden agregar campos adicionales más allá de `addresses`, con relleno opcional dentro de `addresses`, si requieren cierta alineación.
 
-### Security Considerations for Node Aliases
+<!-- omit in toc -->
+### Consideraciones de Seguridad para los Alias de Nodo
 
-Node aliases are user-defined and provide a potential avenue for injection attacks, both during the process of rendering and during persistence.
+Los alias de nodo son definidos por el usuario y proporcionan una vía potencial para ataques de inyección, tanto durante el proceso de representación como durante la persistencia.
 
-Node aliases should always be sanitized before being displayed in HTML/Javascript contexts or any other dynamically interpreted rendering frameworks. Similarly, consider using prepared statements, input validation,
-and escaping to protect against injection vulnerabilities and persistence engines that support SQL or other dynamically interpreted querying languages.
+Los alias de nodos siempre deben desinfectarse antes de mostrarse en contextos HTML/Javascript o cualquier otro marco de representación interpretado dinámicamente. De manera similar, considere usar declaraciones preparadas, validación de entrada, y escapar carácteres para proteger contra vulnerabilidades de inyección y motores de persistencia que admiten SQL u otros lenguajes de consulta interpretados dinámicamente.
 
 * [Stored and Reflected XSS Prevention](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet)
 * [DOM-based XSS Prevention](https://www.owasp.org/index.php/DOM_based_XSS_Prevention_Cheat_Sheet)
 * [SQL Injection Prevention](https://www.owasp.org/index.php/SQL_Injection_Prevention_Cheat_Sheet)
 
-Don't be like the school of [Little Bobby Tables](https://xkcd.com/327/).
+No seas como la escuela de [Little Bobby Tables](https://xkcd.com/327/).
 
-## The `channel_update` Message
+## El mensajae `channel_update`
 
-After a channel has been initially announced, each side independently announces the fees and minimum expiry delta it requires to relay HTLCs through this channel. Each uses the 8-byte channel shortid that matches the `channel_announcement` and the 1-bit `channel_flags` field to indicate which end of the channel it's on (origin or final). A node can do this multiple times, in order to change fees.
+Una vez que se ha anunciado inicialmente un canal, cada lado anuncia de forma independiente las tarifas y el delta de vencimiento mínimo que requiere para retransmitir los HTLC a través de este canal. Cada uno usa el shortid del canal de 8 bytes que coincide con el `channel_announcement` y el campo `channel_flags` de 1 bit para indicar en qué extremo del canal está (origen o final). Un nodo puede hacer esto varias veces para cambiar las tarifas.
 
-Note that the `channel_update` gossip message is only useful in the context of *relaying* payments, not *sending* payments. When making a payment  `A` -> `B` -> `C` -> `D`, only the `channel_update`s related to channels `B` -> `C` (announced by `B`) and `C` -> `D` (announced by `C`) will come into play. When building the route, amounts and expiries for HTLCs need to be calculated backward from the destination to the source. The exact initial value for `amount_msat` and the minimal value for `cltv_expiry`, to be used for the last HTLC in the route, are provided in the payment request (see [BOLT #11](11-payment-encoding.md#tagged-fields)).
+Tenga en cuenta que el mensaje de chismes `channel_update` solo es útil en el contexto de *retransmitir* pagos, no al *enviar* pagos. Al realizar un pago `A` -> `B` -> `C` -> `D`, solo `channel_update` está relacionado con los canales `B` -> `C` (anunciado por `B`) y `C ` -> `D` (anunciado por `C`) entrará en juego. Al construir la ruta, las cantidades y los vencimientos de los HTLC deben calcularse hacia atrás desde el destino hasta el origen. El valor inicial exacto de `amount_msat` y el valor mínimo de `cltv_expiry`, que se utilizarán para el último HTLC de la ruta, se proporcionan en la solicitud de pago (ver [BOLT #11](11-payment-encoding.md#tagged-fields)).
 
 1. type: 258 (`channel_update`)
 2. data:
@@ -313,23 +320,24 @@ Note that the `channel_update` gossip message is only useful in the context of *
     * [`u32`:`fee_proportional_millionths`]
     * [`u64`:`htlc_maximum_msat`]
 
-The `channel_flags` bitfield is used to indicate the direction of the channel: it identifies the node that this update originated from and signals various options concerning the channel. The following table specifies the meaning of its individual bits:
+El campo de bits `channel_flags` se utiliza para indicar la dirección del canal: identifica el nodo desde el que se originó esta actualización y señala varias opciones relacionadas con el canal. La siguiente tabla especifica el significado de sus bits individuales:
 
-| Bit Position  | Name        | Meaning                          |
-| ------------- | ----------- | -------------------------------- |
-| 0             | `direction` | Direction this update refers to. |
-| 1             | `disable`   | Disable the channel.             |
+| Bit de posición  | Nombre        | Significado                                       |
+| ---------------- | ------------- | ------------------------------------------------- |
+| 0                | `direction`   | Dirección a la que se refiere esta actualización. |
+| 1                | `disable`     | Deshabilitar el canal.                            |
 
-The `message_flags` bitfield is used to provide additional details about the message:
+El campo de bits `message_flags` se utiliza para proporcionar detalles adicionales sobre el mensaje:
 
-| Bit Position  | Name           |
-| ------------- | ---------------|
-| 0             | `must_be_one`  |
-| 1             | `dont_forward` |
+| Bit de posición | Nombre         |
+| --------------- | ---------------|
+| 0               | `must_be_one`  |
+| 1               | `dont_forward` |
 
-The `node_id` for the signature verification is taken from the corresponding `channel_announcement`: `node_id_1` if the least-significant bit of flags is 0 or `node_id_2` otherwise.
+El `node_id` para la verificación de la firma se toma del `channel_announcement` correspondiente: `node_id_1` si el bit menos significativo de las banderas es 0 o `node_id_2` en caso contrario.
 
-### Requirements
+<!-- omit in toc -->
+### Requisitos
 
 El nodo de origen:
   - NO DEBE enviar un `channel_update` creado antes de que se haya recibido `channel_ready`.
@@ -396,7 +404,8 @@ The receiving node:
   - otherwise:
     - SHOULD consider the `htlc_maximum_msat` when routing.
 
-### Rationale
+<!-- omit in toc -->
+### Racional
 
 The `timestamp` field is used by nodes for pruning `channel_update`s that are either too far in the future or have not been updated in two weeks; so it makes sense to have it be a UNIX timestamp (i.e. seconds since UTC 1970-01-01). This cannot be a hard requirement, however, given the possible case of two `channel_update`s within a single second.
 
@@ -428,6 +437,7 @@ Query messages can be extended with optional fields that can help reduce the num
 
 Nodes can signal that they support extended gossip queries with the `gossip_queries_ex` feature bit.
 
+<!-- omit in toc -->
 ### The `query_short_channel_ids`/`reply_short_channel_ids_end` Messages
 
 1. type: 261 (`query_short_channel_ids`) (`gossip_queries`)
@@ -463,7 +473,8 @@ Query flags must be minimally encoded, which means that one flag will be encoded
 
 This is a general mechanism which lets a node query for the `channel_announcement` and `channel_update` messages for specific channels (identified via `short_channel_id`s). This is usually used either because a node sees a `channel_update` for which it has no `channel_announcement` or because it has obtained previously unknown `short_channel_id`s from `reply_channel_range`.
 
-#### Requirements
+<!-- omit in toc -->
+#### Requisitos
 
 The sender:
   - MUST NOT send `query_short_channel_ids` if it has sent a previous `query_short_channel_ids` to this peer and not received `reply_short_channel_ids_end`.
@@ -518,12 +529,14 @@ The receiver:
   - otherwise:
     - SHOULD set `full_information` to 1.
 
-#### Rationale
+<!-- omit in toc -->
+#### Racional
 
 Future nodes may not have complete information; they certainly won't have complete information on unknown `chain_hash` chains.  While this `full_information` field (previously and confusingly called `complete`) cannot be trusted, a 0 does indicate that the sender should search elsewhere for additional data.
 
 The explicit `reply_short_channel_ids_end` message means that the receiver can indicate it doesn't know anything, and the sender doesn't need to rely on timeouts.  It also causes a natural ratelimiting of queries.
 
+<!-- omit in toc -->
 ### The `query_channel_range` and `reply_channel_range` Messages
 
 1. type: 263 (`query_channel_range`) (`gossip_queries`)
@@ -594,7 +607,8 @@ The checksum of a `channel_update` is the CRC32C checksum as specified in [RFC37
 
 This allows querying for channels within specific blocks.
 
-#### Requirements
+<!-- omit in toc -->
+#### Requisitos
 
 The sender of `query_channel_range`:
   - MUST NOT send this if it has sent a previous `query_channel_range` to this peer and not received all `reply_channel_range` replies.
@@ -626,7 +640,8 @@ If the incoming message includes `query_option`, the receiver MAY append additio
 - if bit 0 in `query_option_flags` is set, the receiver MAY append a `timestamps_tlv` that contains `channel_update` timestamps for all `short_chanel_id`s in `encoded_short_ids`
 - if bit 1 in `query_option_flags` is set, the receiver MAY append a `checksums_tlv` that contains `channel_update` checksums for all `short_chanel_id`s in `encoded_short_ids`
 
-#### Rationale
+<!-- omit in toc -->
+#### Racional
 
 A single response might be too large for a single packet, so multiple replies may be required.  We want to allow a peer to store canned results for (say) 1000-block ranges, so replies can exceed the requested range.  However, we require that each reply be relevant (overlapping the requested range).
 
@@ -634,6 +649,7 @@ By insisting that replies be in increasing order, the receiver can easily determ
 
 The addition of timestamp and checksum fields allow a peer to omit querying for redundant updates.
 
+<!-- omit in toc -->
 ### The `gossip_timestamp_filter` Message
 
 1. type: 265 (`gossip_timestamp_filter`) (`gossip_queries`)
@@ -647,7 +663,8 @@ to send this, otherwise `gossip_queries` negotiation means no gossip messages wo
 
 Note that this filter replaces any previous one, so it can be used multiple times to change the gossip from a peer.
 
-#### Requirements
+<!-- omit in toc -->
+#### Requisitos
 
 The sender:
   - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain that it wants the gossip to refer to.
@@ -666,7 +683,8 @@ The receiver:
   - If a `channel_announcement` is sent:
     - MUST send the `channel_announcement` prior to any corresponding `channel_update`s and `node_announcement`s.
 
-#### Rationale
+<!-- omit in toc -->
+#### Racional
 
 Since `channel_announcement` doesn't have a timestamp, we generate a likely one.  If there's no `channel_update` then it is not sent at all, which is most likely in the case of pruned channels.
 
@@ -686,7 +704,8 @@ Note that the `initial_routing_sync` feature is overridden (and should be consid
 
 Note that `gossip_queries` does not work with older nodes, so the value of `initial_routing_sync` is still important to control interactions with them.
 
-### Requirements
+<!-- omit in toc -->
+### Requisitos
 
 A node:
   - if the `gossip_queries` feature is negotiated:
@@ -702,7 +721,8 @@ A node:
 
 ## Rebroadcasting
 
-### Requirements
+<!-- omit in toc -->
+### Requisitos
 
 A receiving node:
   - upon receiving a new `channel_announcement` or a `channel_update` or `node_announcement` with an updated `timestamp`:
@@ -725,15 +745,17 @@ A node:
   - upon connection establishment:
     - SHOULD send all `channel_announcement` messages, followed by the latest `node_announcement` AND `channel_update` messages.
 
-### Rationale
+<!-- omit in toc -->
+### Racional
 
-Once the gossip message has been processed, it's added to a list of outgoing messages, destined for the processing node's peers, replacing any older updates from the origin node. This list of gossip messages will be flushed at regular intervals; such a store-and-delayed-forward broadcast is called a _staggered broadcast_. Also, such batching forms a natural rate limit with low overhead.
+Una vez que se ha procesado el mensaje de chismes, se agrega a una lista de mensajes salientes, destinados a los pares del nodo de procesamiento, reemplazando cualquier actualización anterior del nodo de origen. Esta lista de mensajes de chismes se eliminará a intervalos regulares; una transmisión de este tipo con almacenamiento y reenvío retrasado se denomina _staggered broadcast_ o _difusión escalonada_. Además, tal procesamiento por lotes forma un límite de tasa natural con gastos generales bajos.
 
-The sending of all gossip on reconnection is naive, but simple, and allows bootstrapping for new nodes as well as updating for nodes that have been offline for some time.  The `gossip_queries` option allows for more refined synchronization.
+El envío de todos los chismes sobre la reconexión es naive, pero simple, y permite el `bootstrapping` de nuevos nodos, así como la actualización de nodos que han estado fuera de línea durante algún tiempo. La opción `gossip_queries` permite una sincronización más refinada.
 
 ## HTLC Fees
 
-### Requirements
+<!-- omit in toc -->
+### Requisitos
 
 The origin node:
   - SHOULD accept HTLCs that pay a fee equal to or greater than:
@@ -743,7 +765,8 @@ The origin node:
 
 ## Pruning the Network View
 
-### Requirements
+<!-- omit in toc -->
+### Requisitos
 
 A node:
   - SHOULD monitor the funding transactions in the blockchain, to identify channels that are being closed.
@@ -753,9 +776,11 @@ A node:
     - MAY prune nodes added through `node_announcement` messages from their local view.
       - Note: this is a direct result of the dependency of a `node_announcement` being preceded by a `channel_announcement`.
 
+<!-- omit in toc -->
 ### Recommendation on Pruning Stale Entries
 
-#### Requirements
+<!-- omit in toc -->
+#### Requisitos
 
 A node:
   - if the `timestamp` of the latest `channel_update` in either direction is older than two weeks (1209600 seconds):
@@ -763,7 +788,8 @@ A node:
     - MAY ignore the channel.
     - Note: this is an individual node policy and MUST NOT be enforced by forwarding peers, e.g. by closing channels when receiving outdated gossip messages.
 
-#### Rationale
+<!-- omit in toc -->
+#### Racional
 
 Several scenarios may result in channels becoming unusable and its endpoints becoming unable to send updates for these channels. For example, this occurs if both endpoints lose access to their private keys and can neither sign `channel_update`s nor close the channel on-chain. In this case, the channels are unlikely to be part of a computed route, since they would be partitioned off from the rest of the network; however, they would remain in the local network view would be forwarded to other peers indefinitely.
 
@@ -780,6 +806,8 @@ This effectively creates a _shadow route extension_ to the actual route and prov
 
 Other more advanced considerations involve diversification of route selection, to avoid single points of failure and detection, and balancing of local channels.
 
+
+<!-- omit in toc -->
 ### Routing Example
 
 Consider four nodes:
