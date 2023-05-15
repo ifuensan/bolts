@@ -642,12 +642,6 @@ Si el mensaje entrante incluye `query_option`, el receptor PUEDE agregar informa
 <!-- omit in toc -->
 #### Racional
 
-A single response might be too large for a single packet, so multiple replies may be required.  We want to allow a peer to store canned results for (say) 1000-block ranges, so replies can exceed the requested range.  However, we require that each reply be relevant (overlapping the requested range).
-
-By insisting that replies be in increasing order, the receiver can easily determine if replies are done: simply check if `first_blocknum` plus `number_of_blocks` equals or exceeds the `first_blocknum` plus `number_of_blocks` it asked for.
-
-The addition of timestamp and checksum fields allow a peer to omit querying for redundant updates.
-
 Una sola respuesta puede ser demasiado grande para un solo paquete, por lo que es posible que se requieran múltiples respuestas. Queremos permitir que un par almacene resultados enlatados para (digamos) rangos de 1000 bloques, de modo que las respuestas puedan exceder el rango solicitado. Sin embargo, requerimos que cada respuesta sea relevante (que se superponga al rango solicitado).
 
 Al insistir en que las respuestas sean en orden creciente, el receptor puede determinar fácilmente si las respuestas están hechas: simplemente verifique si `first_blocknum` más `number_of_blocks` es igual o excede el `first_blocknum` más `number_of_blocks` que solicitó.
