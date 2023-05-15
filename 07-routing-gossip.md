@@ -23,12 +23,12 @@ Para soportar el descubrimiento de canales y nodos, se admiten tres *mensajes de
 - [El mensaje `channel_announcement`](#el-mensaje-channel_announcement)
 - [El mensaje `node_announcement`](#el-mensaje-node_announcement)
 - [El mensajae `channel_update`](#el-mensajae-channel_update)
-- [Query Messages](#query-messages)
-- [Initial Sync](#initial-sync)
-- [Rebroadcasting](#rebroadcasting)
-- [HTLC Fees](#htlc-fees)
-- [Pruning the Network View](#pruning-the-network-view)
-- [Recommendations for Routing](#recommendations-for-routing)
+- [Mensajes de consulta](#mensajes-de-consulta)
+- [Sincronización Inicial](#sincronización-inicial)
+- [Retransmisión](#retransmisión)
+- [Tarifa de HTLC](#tarifa-de-htlc)
+- [Podando la de Vista de Red ](#podando-la-de-vista-de-red-)
+- [Recomendaciones para el enrutamiento](#recomendaciones-para-el-enrutamiento)
 
 ## Definición del `short_channel_id`
 
@@ -369,73 +369,70 @@ El nodo de origen:
   - Si crea un nuevo `channel_update` con parámetros de canal actualizados:
     - DEBE seguir aceptando los parámetros del canal anterior durante 10 minutos
 
-
-
-
-The receiving node:
-  - if the `short_channel_id` does NOT match a previous `channel_announcement`, OR if the channel has been closed in the meantime:
-    - MUST ignore `channel_update`s that do NOT correspond to one of its own channels.
-  - SHOULD accept `channel_update`s for its own channels (even if non-public),
-  in order to learn the associated origin nodes' forwarding parameters.
-  - if `signature` is not a valid signature, using `node_id` of the
-  double-SHA256 of the entire message following the `signature` field (including
-  unknown fields following `fee_proportional_millionths`):
-    - SHOULD send a `warning` and close the connection.
-    - MUST NOT process the message further.
-  - if the specified `chain_hash` value is unknown (meaning it isn't active on the specified chain):
-    - MUST ignore the channel update.
-  - if the `timestamp` is equal to the last-received `channel_update` for this `short_channel_id` AND `node_id`:
-    - if the fields below `timestamp` differ:
-      - MAY blacklist this `node_id`.
-      - MAY forget all channels associated with it.
-    - if the fields below `timestamp` are equal:
-      - SHOULD ignore this message
-  - if `timestamp` is lower than that of the last-received `channel_update` for this `short_channel_id` AND for `node_id`:
-    - SHOULD ignore the message.
-  - otherwise:
-    - if the `timestamp` is unreasonably far in the future:
-      - MAY discard the `channel_update`.
-    - otherwise:
-      - SHOULD queue the message for rebroadcasting.
-      - MAY choose NOT to for messages longer than the minimum expected length.
-  - if `htlc_maximum_msat` is greater than channel capacity:
-    - MAY blacklist this `node_id`
-    - SHOULD ignore this channel during route considerations.
-  - otherwise:
-    - SHOULD consider the `htlc_maximum_msat` when routing.
+El nodo receptor:
+  - si `short_channel_id` NO coincide con un `channel_announcement` anterior, O si el canal ha sido cerrado mientras tanto:
+    - DEBE ignorar `channel_update`s que NO correspondan a uno de sus propios canales.
+  - DEBERÍA aceptar `channel_update`s para sus propios canales (incluso si no son públicos),
+  para aprender los parámetros de reenvío de los nodos de origen asociados.
+  - si `signature` no es una firma válida, usando `node_id` del
+  doble-SHA256 de todo el mensaje que sigue al campo `signature` (incluyendo
+  campos desconocidos después de `fee_proportional_millionths`):
+    - DEBERÍA enviar una `warning` y cerrar la conexión.
+    - NO DEBE seguir procesando el mensaje.
+  - si el valor `chain_hash` especificado es desconocido (lo que significa que no está activo en la cadena especificada):
+    - DEBE ignorar la actualización del canal.
+  - si la `timestamp` es igual a la última `channel_update` recibida para este `short_channel_id` Y `node_id`:
+    - si los campos debajo de `timestamp` difieren:
+      - PUEDE incluir en la lista negra este `node_id`.
+      - PUEDE olvidar todos los canales asociados con él.
+    - si los campos debajo de `timestamp` son iguales:
+      - DEBE ignorar este mensaje
+  - si `timestamp` es inferior a la última `channel_update` recibida para este `short_channel_id` Y para `node_id`:
+    - DEBE ignorar el mensaje.
+  - de lo contrario:
+    - si la `timestamp` está irrazonablemente lejos en el futuro:
+      - PUEDE descartar `channel_update`.
+    - de lo contrario:
+      - DEBERÍA poner en cola el mensaje para su retransmisión.
+      - PUEDE elegir NO para mensajes más largos que la longitud mínima esperada.
+  - si `htlc_maximum_msat` es mayor que la capacidad del canal:
+    - PUEDE incluir en la lista negra este `node_id`
+    - DEBE ignorar este canal durante las consideraciones de ruta.
+  - de lo contrario:
+    - DEBE considerar `htlc_maximum_msat` al enrutar.
 
 <!-- omit in toc -->
 ### Racional
 
-The `timestamp` field is used by nodes for pruning `channel_update`s that are either too far in the future or have not been updated in two weeks; so it makes sense to have it be a UNIX timestamp (i.e. seconds since UTC 1970-01-01). This cannot be a hard requirement, however, given the possible case of two `channel_update`s within a single second.
+Los nodos utilizan el campo `timestamp` para eliminar `channel_update`s que están demasiado lejos en el futuro o no se han actualizado en dos semanas (`pruning`); por lo que tiene sentido que sea una marca de tiempo UNIX (es decir, segundos desde UTC 1970-01-01). Sin embargo, esto no puede ser un requisito estricto, dado el posible caso de dos `channel_update` en un solo segundo.
 
-It is assumed that more than one `channel_update` message changing the channel parameters in the same second may be a DoS attempt, and therefore, the node responsible for signing such messages may be blacklisted. However, a node may send a same `channel_update` message with a different signature (changing the nonce in signature signing), and hence fields apart from signature are checked to see if the channel parameters have changed for the same timestamp. It is also important to note that ECDSA signatures are malleable. So, an intermediate node who received the `channel_update` message can rebroadcast it just by changing the `s` component of signature with `-s`.
-This should however not result in the blacklist of the `node_id` from where the message originated.
+Se supone que más de un mensaje `channel_update` cambiando los parámetros del canal en el mismo segundo puede ser un intento de DoS y, por lo tanto, el nodo responsable de firmar dichos mensajes puede estar en la lista negra. Sin embargo, un nodo puede enviar un mismo mensaje `channel_update` con una firma diferente (cambiando el nonce en la firma cuando está firmando) y, por lo tanto, los campos aparte de la firma se verifican para ver si los parámetros del canal han cambiado para la misma marca de tiempo. También es importante tener en cuenta que las firmas ECDSA son maleables. Entonces, un nodo intermedio que recibió el mensaje `channel_update` puede retransmitirlo simplemente cambiando el componente `s` de la firma con `-s`.
+Sin embargo, esto no debería dar como resultado la incluisión en la lista negra del `node_id` del nodo que originó el mensaje.
 
-The recommendation against redundant `channel_update`s minimizes spamming the network, however it is sometimes inevitable.  For example, a channel with a peer which is unreachable will eventually cause a `channel_update` to indicate that the channel is disabled, with another update re-enabling the channel when the peer reestablishes contact.  Because gossip messages are batched and replace previous ones, the result may be a single seemingly-redundant update.
+La recomendación contra `channel_update`s redundantes minimiza el spam en la red, sin embargo, a veces es inevitable. Por ejemplo, un canal con un compañero al que no se puede acceder eventualmente generará una `channel_update` para indicar que el canal está deshabilitado, y otra actualización volverá a habilitar el canal cuando el compañero restablezca el contacto. Debido a que los mensajes de chismes se procesan por lotes y reemplazan a los anteriores, el resultado puede ser una única actualización aparentemente redundante.
 
-When a node creates a new `channel_update` to change its channel parameters, it will take some time to propagate through the network and payers may use older parameters. It is recommended to keep accepting older parameters for at least 10 minutes to improve payment latency and reliability.
+Cuando un nodo crea una nueva `channel_update` para cambiar los parámetros de su canal, tardará un tiempo en propagarse a través de la red y los pagadores pueden usar parámetros más antiguos. Se recomienda seguir aceptando parámetros anteriores durante al menos 10 minutos para mejorar la latencia y la confiabilidad de los pagos.
 
-The `must_be_one` field in `message_flags` was previously used to indicate the presence of the `htlc_maximum_msat` field. This field must now always be present, so `must_be_one` is a constant value, and ignored by receivers.
+El campo `must_be_one` en `message_flags` se usaba anteriormente para indicar la presencia del campo `htlc_maximum_msat`. Este campo ahora debe estar siempre presente, por lo que `must_be_one` es un valor constante e ignorado por los receptores.
 
-## Query Messages
+## Mensajes de consulta
 
-Negotiating the `gossip_queries` option via `init` enables a number of extended queries for gossip synchronization.  These explicitly request what gossip should be received.
+Negociar la opción `gossip_queries` a través de `init` habilita una serie de consultas extendidas para la sincronización de chismes. Estos solicitan explícitamente qué chismes deben recibirse.
 
-There are several messages which contain a long array of `short_channel_id`s (called `encoded_short_ids`) so we include an encoding byte which allows for different encoding schemes to be defined in the future, if they provide benefit.
+Hay varios mensajes que contienen una gran variedad de `short_channel_id`s (llamados `encoded_short_ids`), por lo que incluimos un byte de codificación que permite definir diferentes esquemas de codificación en el futuro, si brindan un beneficio.
 
-Encoding types:
-* `0`: uncompressed array of `short_channel_id` types, in ascending order.
-* `1`: Previously used for zlib compression, this encoding MUST NOT be used.
+Tipos de codificación:
+* `0`: matriz sin comprimir de tipos `short_channel_id`, en orden ascendente.
+* `1`: utilizado anteriormente para la compresión zlib, esta codificación NO DEBE utilizarse.
 
-This encoding is also used for arrays of other types (timestamps, flags, ...), and specified with an `encoded_` prefix. For example, `encoded_timestamps` is an array of timestamps with a `0` prefix.
+Esta codificación también se usa para arreglos de otros tipos (marcas de tiempo, banderas, ...), y se especifica con un prefijo `encoded_`. Por ejemplo, `encoded_timestamps` es una matriz de marcas de tiempo con un prefijo `0`.
 
-Query messages can be extended with optional fields that can help reduce the number of messages needed to synchronize routing tables by enabling:
+Los mensajes de consulta se pueden ampliar con campos opcionales que pueden ayudar a reducir la cantidad de mensajes necesarios para sincronizar las tablas de enrutamiento al habilitar:
 
-- timestamp-based filtering of `channel_update` messages: only ask for `channel_update` messages that are newer than the ones you already have.
-- checksum-based filtering of `channel_update` messages: only ask for `channel_update` messages that carry different information from the ones you already have.
+- Filtrado basado en la marca de tiempo de los mensajes `channel_update`: solo solicite mensajes `channel_update` que sean más nuevos que los que ya tiene.
+- Filtrado basado en suma de verificación de mensajes `channel_update`: solo solicite mensajes `channel_update` que contengan información diferente a la que ya tiene.
 
-Nodes can signal that they support extended gossip queries with the `gossip_queries_ex` feature bit.
+Los nodos pueden indicar que admiten consultas de chismes extendidas con el bit de función `gossip_queries_ex`.
 
 <!-- omit in toc -->
 ### The `query_short_channel_ids`/`reply_short_channel_ids_end` Messages
@@ -454,17 +451,17 @@ Nodes can signal that they support extended gossip queries with the `gossip_quer
         * [`byte`:`encoding_type`]
         * [`...*byte`:`encoded_query_flags`]
 
-`encoded_query_flags` is an array of bitfields, one bigsize per bitfield, one bitfield for each `short_channel_id`. Bits have the following meaning:
+`encoded_query_flags` es una matriz de campos de bits, uno de tamaño grande por campo de bits, un campo de bits para cada `short_channel_id`. Los bits tienen el siguiente significado:
 
-| Bit Position  | Meaning                                  |
-| ------------- | ---------------------------------------- |
-| 0             | Sender wants `channel_announcement`      |
-| 1             | Sender wants `channel_update` for node 1 |
-| 2             | Sender wants `channel_update` for node 2 |
-| 3             | Sender wants `node_announcement` for node 1 |
-| 4             | Sender wants `node_announcement` for node 2 |
+| Posición de bits | Significado                                            |
+| ---------------- | ------------------------------------------------------ |
+| 0                | El remitente quiere `channel_announcement`             |
+| 1                | El remitente quiere `channel_update` para el nodo 1    |
+| 2                | El remitente quiere `channel_update` para el nodo 2    |
+| 3                | El remitente quiere `node_announcement` para el nodo 1 |
+| 4                | El remitente quiere `node_announcement` para el nodo 2 |
 
-Query flags must be minimally encoded, which means that one flag will be encoded with a single byte.
+Los indicadores de consulta deben codificarse mínimamente (`minimally encoded`), lo que significa que un indicador se codificará con un solo byte.
 
 1. type: 262 (`reply_short_channel_ids_end`) (`gossip_queries`)
 2. data:
@@ -473,71 +470,73 @@ Query flags must be minimally encoded, which means that one flag will be encoded
 
 This is a general mechanism which lets a node query for the `channel_announcement` and `channel_update` messages for specific channels (identified via `short_channel_id`s). This is usually used either because a node sees a `channel_update` for which it has no `channel_announcement` or because it has obtained previously unknown `short_channel_id`s from `reply_channel_range`.
 
+Este es un mecanismo general que permite que un nodo consulte los mensajes `channel_announcement` y `channel_update` para canales específicos (identificados a través de `short_channel_id`s). Esto generalmente se usa porque un nodo ve una `channel_update` para la cual no tiene `channel_announcement` o porque ha obtenido `short_channel_id`s previamente desconocidos de `reply_channel_range`.
+
 <!-- omit in toc -->
 #### Requisitos
 
-The sender:
-  - MUST NOT send `query_short_channel_ids` if it has sent a previous `query_short_channel_ids` to this peer and not received `reply_short_channel_ids_end`.
-  - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain that the `short_channel_id`s refer to.
-  - MUST set the first byte of `encoded_short_ids` to the encoding type.
-  - MUST encode a whole number of `short_channel_id`s to `encoded_short_ids`
-  - MAY send this if it receives a `channel_update` for a `short_channel_id` for which it has no `channel_announcement`.
-  - SHOULD NOT send this if the channel referred to is not an unspent output.
-  - MAY include an optional `query_flags`. If so:
-    - MUST set `encoding_type`, as for `encoded_short_ids`.
-    - Each query flag is a minimally-encoded bigsize.
-    - MUST encode one query flag per `short_channel_id`.
+El remitente:
+  - NO DEBE enviar `query_short_channel_ids` si envió un `query_short_channel_ids` anterior a este par y no recibió `reply_short_channel_ids_end`.
+  - DEBE establecer `chain_hash` en el hash de 32 bytes que identifica de forma única la cadena a la que se refieren los `short_channel_id`s.
+  - DEBE establecer el primer byte de `encoded_short_ids` en el tipo de codificación.
+  - DEBE codificar un número entero de `short_channel_id`s a `encoded_short_ids`
+  - PUEDE enviar esto si recibe un `channel_update` para un `short_channel_id` para el cual no tiene `channel_announcement`.
+  - NO DEBE enviar esto si el canal al que se hace referencia no es una salida no utilizada.
+  - PUEDE incluir `query_flags` opcional. En ese caso:
+    - DEBE establecer `encoding_type`, como `encoded_short_ids`.
+    - Cada indicador de consulta es un tamaño grande `minimally-encoded`.
+    - DEBE codificar un indicador de consulta por `short_channel_id`.
 
-The receiver:
-  - if the first byte of `encoded_short_ids` is not a known encoding type:
-    - MAY send a `warning`.
-    - MAY close the connection.
-  - if `encoded_short_ids` does not decode into a whole number of `short_channel_id`:
-    - MAY send a `warning`.
-    - MAY close the connection.
-  - if it has not sent `reply_short_channel_ids_end` to a previously received `query_short_channel_ids` from this sender:
-    - MAY send a `warning`.
-    - MAY close the connection.
-  - if the incoming message includes `query_short_channel_ids_tlvs`:
-    - if `encoding_type` is not a known encoding type:
-      - MAY send a `warning`.
-      - MAY close the connection.
-    - if `encoded_query_flags` does not decode to exactly one flag per `short_channel_id`:
-      - MAY send a `warning`.
-      - MAY close the connection.
-  - MUST respond to each known `short_channel_id`:
-    - if the incoming message does not include `encoded_query_flags`:
-      - with a `channel_announcement` and the latest `channel_update` for each end
-      - MUST follow with any `node_announcement`s for each `channel_announcement`
-    - otherwise:
-      - We define `query_flag` for the Nth `short_channel_id` in `encoded_short_ids` to be the Nth bigsize of the decoded `encoded_query_flags`.
-      - if bit 0 of `query_flag` is set:
-        - MUST reply with a `channel_announcement`
-      - if bit 1 of `query_flag` is set and it has received a `channel_update` from `node_id_1`:
-        - MUST reply with the latest `channel_update` for `node_id_1`
-      - if bit 2 of `query_flag` is set and it has received a `channel_update` from `node_id_2`:
-        - MUST reply with the latest `channel_update` for `node_id_2`
-      - if bit 3 of `query_flag` is set and it has received a `node_announcement` from `node_id_1`:
-        - MUST reply with the latest `node_announcement` for `node_id_1`
-      - if bit 4 of `query_flag` is set and it has received a `node_announcement` from `node_id_2`:
-        - MUST reply with the latest `node_announcement` for `node_id_2`
-    - SHOULD NOT wait for the next outgoing gossip flush to send these.
-  - SHOULD avoid sending duplicate `node_announcements` in response to a single `query_short_channel_ids`.
-  - MUST follow these responses with `reply_short_channel_ids_end`.
-  - if does not maintain up-to-date channel information for `chain_hash`:
-    - MUST set `full_information` to 0.
-  - otherwise:
-    - SHOULD set `full_information` to 1.
+El receptor:
+  - si el primer byte de `encoded_short_ids` no es un tipo de codificación conocido:
+    - PUEDE enviar una `warning`.
+    - PUEDE cerrar la conexión.
+  - si `encoded_short_ids` no se decodifica en un número entero de `short_channel_id`:
+    - PUEDE enviar una `warning`.
+    - PUEDE cerrar la conexión.
+  - si no ha enviado `reply_short_channel_ids_end` a un `query_short_channel_ids` recibido previamente de este remitente:
+    - PUEDE enviar una `warning`.
+    - PUEDE cerrar la conexión.
+  - si el mensaje entrante incluye `query_short_channel_ids_tlvs`:
+    - si `encoding_type` no es un tipo de codificación conocido:
+      - PUEDE enviar una `warning`.
+      - PUEDE cerrar la conexión.
+    - si `encoded_query_flags` no se decodifica en exactamente una bandera por `short_channel_id`:
+      - PUEDE enviar una `warning`.
+      - PUEDE cerrar la conexión.
+  - DEBE responder a cada `short_channel_id` conocido:
+    - si el mensaje entrante no incluye `encoded_query_flags`:
+      - con un `channel_announcement` y la última `channel_update` para cada extremo
+      - DEBE seguir con cualquier `node_announcement` para cada `channel_announcement`
+    - de lo contrario:
+      - Definimos `query_flag` para el enésimo `short_channel_id` en `encoded_short_ids` para que sea el enésimo tamaño grande de los `encoded_query_flags` decodificados.
+      - si se establece el bit 0 de `query_flag`:
+        - DEBE responder con un `channel_announcement`
+      - si el bit 1 de `query_flag` está establecido y ha recibido una `channel_update` de `node_id_1`:
+        - DEBE responder con la última `channel_update` para `node_id_1`
+      - si el bit 2 de `query_flag` está establecido y ha recibido una `channel_update` de `node_id_2`:
+        - DEBE responder con la última `channel_update` para `node_id_2`
+      - si el bit 3 de `query_flag` está establecido y ha recibido un `node_announcement` de `node_id_1`:
+        - DEBE responder con el último `node_announcement` para `node_id_1`
+      - si el bit 4 de `query_flag` está establecido y ha recibido un `node_announcement` de `node_id_2`:
+        - DEBE responder con el último `node_announcement` para `node_id_2`
+    - NO DEBE esperar a la siguiente descarga de chismes salientes para enviarlos.
+  - DEBERÍA evitar enviar `node_announcements` duplicados en respuesta a un solo `query_short_channel_ids`.
+  - DEBE seguir estas respuestas con `reply_short_channel_ids_end`.
+  - si no mantiene actualizada la información del canal para `chain_hash`:
+    - DEBE establecer `full_information` en 0.
+  - de lo contrario:
+    - DEBERÍA establecer `full_information` en 1.
 
 <!-- omit in toc -->
 #### Racional
 
-Future nodes may not have complete information; they certainly won't have complete information on unknown `chain_hash` chains.  While this `full_information` field (previously and confusingly called `complete`) cannot be trusted, a 0 does indicate that the sender should search elsewhere for additional data.
+Es posible que los nodos futuros no tengan información completa; ciertamente no tendrán información completa sobre cadenas `chain_hash` desconocidas. Si bien no se puede confiar en este campo `full_information` (anteriormente y confusamente llamado `complete`), un 0 indica que el remitente debe buscar en otro lugar para obtener datos adicionales.
 
-The explicit `reply_short_channel_ids_end` message means that the receiver can indicate it doesn't know anything, and the sender doesn't need to rely on timeouts.  It also causes a natural ratelimiting of queries.
+El mensaje explícito `reply_short_channel_ids_end` significa que el receptor puede indicar que no sabe nada, y el remitente no necesita confiar en los tiempos de espera. También provoca una limitación natural de la tasa de consultas.
 
 <!-- omit in toc -->
-### The `query_channel_range` and `reply_channel_range` Messages
+### Los mensajes `query_channel_range` y `reply_channel_range`
 
 1. type: 263 (`query_channel_range`) (`gossip_queries`)
 2. data:
@@ -552,14 +551,14 @@ The explicit `reply_short_channel_ids_end` message means that the receiver can i
     2. data:
         * [`bigsize`:`query_option_flags`]
 
-`query_option_flags` is a bitfield represented as a minimally-encoded bigsize. Bits have the following meaning:
+`query_option_flags` es un campo de bits representado como un tamaño grande `minimally-encoded`. Los bits tienen el siguiente significado:
 
-| Bit Position  | Meaning                 |
-| ------------- | ----------------------- |
-| 0             | Sender wants timestamps |
-| 1             | Sender wants checksums  |
+| Posición de bits | Significado                                |
+| ---------------- | ------------------------------------------ |
+| 0                | El remitente quiere marcas de tiempo       |
+| 1                | El remitente quiere sumas de verificación  |
 
-Though it is possible, it would not be very useful to ask for checksums without asking for timestamps too: the receiving node may have an older `channel_update` with a different checksum, asking for it would be useless. And if a `channel_update` checksum is actually 0 (which is quite unlikely) it will not be queried.
+Aunque es posible, no sería muy útil solicitar sumas de verificación sin solicitar también marcas de tiempo: el nodo receptor puede tener un `channel_update` más antiguo con una suma de verificación diferente, pedirlo sería inútil. Y si una suma de comprobación `channel_update` es realmente 0 (lo que es bastante improbable), no se consultará.
 
 1. type: 264 (`reply_channel_range`) (`gossip_queries`)
 2. data:
@@ -581,16 +580,16 @@ Though it is possible, it would not be very useful to ask for checksums without 
     2. data:
         * [`...*channel_update_checksums`:`checksums`]
 
-For a single `channel_update`, timestamps are encoded as:
+Para una solo `channel_update`, las marcas de tiempo se codifican como:
 
 1. subtype: `channel_update_timestamps`
 2. data:
     * [`u32`:`timestamp_node_id_1`]
     * [`u32`:`timestamp_node_id_2`]
 
-Where:
-* `timestamp_node_id_1` is the timestamp of the `channel_update` for `node_id_1`, or 0 if there was no `channel_update` from that node.
-* `timestamp_node_id_2` is the timestamp of the `channel_update` for `node_id_2`, or 0 if there was no `channel_update` from that node.
+Donde:
+* `timestamp_node_id_1` es la marca de tiempo de `channel_update` para `node_id_1`, o 0 si no hubo `channel_update` de ese nodo.
+* `timestamp_node_id_2` es la marca de tiempo de `channel_update` para `node_id_2`, o 0 si no hubo `channel_update` de ese nodo.
 
 For a single `channel_update`, checksums are encoded as:
 
@@ -599,46 +598,46 @@ For a single `channel_update`, checksums are encoded as:
     * [`u32`:`checksum_node_id_1`]
     * [`u32`:`checksum_node_id_2`]
 
-Where:
-* `checksum_node_id_1` is the checksum of the `channel_update` for `node_id_1`, or 0 if there was no `channel_update` from that node.
-* `checksum_node_id_2` is the checksum of the `channel_update` for `node_id_2`, or 0 if there was no `channel_update` from that node.
+Donde:
+* `checksum_node_id_1` es la suma de verificación de `channel_update` para `node_id_1`, o 0 si no hubo `channel_update` de ese nodo.
+* `checksum_node_id_2` es la suma de verificación de `channel_update` para `node_id_2`, o 0 si no hubo `channel_update` de ese nodo.
 
-The checksum of a `channel_update` is the CRC32C checksum as specified in [RFC3720](https://tools.ietf.org/html/rfc3720#appendix-B.4) of this `channel_update` without its `signature` and `timestamp` fields.
+La suma de verificación de una `channel_update` es la suma de verificación CRC32C como se especifica en [RFC3720](https://tools.ietf.org/html/rfc3720#appendix-B.4) de este `channel_update` sin su `signature` y campos `timestamp`.
 
-This allows querying for channels within specific blocks.
+Esto permite consultar canales dentro de bloques específicos.
 
 <!-- omit in toc -->
 #### Requisitos
 
-The sender of `query_channel_range`:
-  - MUST NOT send this if it has sent a previous `query_channel_range` to this peer and not received all `reply_channel_range` replies.
-  - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain
-  that it wants the `reply_channel_range` to refer to
-  - MUST set `first_blocknum` to the first block it wants to know channels for
-  - MUST set `number_of_blocks` to 1 or greater.
-  - MAY append an additional `query_channel_range_tlv`, which specifies the type of extended information it would like to receive.  
+El remitente de `query_channel_range`:
+  - NO DEBE enviar esto si ha enviado un `query_channel_range` anterior a este par y no recibió todas las respuestas de `reply_channel_range`.
+  - DEBE establecer `chain_hash` en el hash de 32 bytes que identifica de forma única la cadena
+  que quiere que `reply_channel_range` se refiera
+  - DEBE establecer `first_blocknum` en el primer bloque para el que quiere conocer los canales
+  - DEBE establecer `number_of_blocks` en 1 o más.
+  - PUEDE agregar un `query_channel_range_tlv` adicional, que especifica el tipo de información extendida que le gustaría recibir.
 
-The receiver of `query_channel_range`:
-  - if it has not sent all `reply_channel_range` to a previously received `query_channel_range` from this sender:
-    - MAY send a `warning`.
-    - MAY close the connection.
-  - MUST respond with one or more `reply_channel_range`:
-    - MUST set with `chain_hash` equal to that of `query_channel_range`,
-    - MUST limit `number_of_blocks` to the maximum number of blocks whose results could fit in `encoded_short_ids`
-    - MAY split block contents across multiple `reply_channel_range`.
-    - the first `reply_channel_range` message:
-      - MUST set `first_blocknum` less than or equal to the `first_blocknum` in `query_channel_range`
-      - MUST set `first_blocknum` plus `number_of_blocks` greater than `first_blocknum` in `query_channel_range`.
-    - successive `reply_channel_range` message:
-      - MUST have `first_blocknum` equal or greater than the previous `first_blocknum`.
-    - MUST set `sync_complete` to `false` if this is not the final `reply_channel_range`.
-    - the final `reply_channel_range` message:
-      - MUST have `first_blocknum` plus `number_of_blocks` equal or greater than the `query_channel_range` `first_blocknum` plus `number_of_blocks`.
-    - MUST set `sync_complete` to `true`.
+El receptor de `query_channel_range`:
+  - si no ha enviado todo `reply_channel_range` a un `query_channel_range` recibido previamente de este remitente:
+    - PUEDE enviar una `warning`.
+    - PUEDE cerrar la conexión.
+  - DEBE responder con uno o más `reply_channel_range`:
+    - DEBE configurarse con `chain_hash` igual a `query_channel_range`,
+    - DEBE limitar `number_of_blocks` al número máximo de bloques cuyos resultados podrían caber en `encoded_short_ids`
+    - PUEDE dividir el contenido del bloque en múltiples `reply_channel_range`.
+    - el primer mensaje `reply_channel_range`:
+      - DEBE establecer `first_blocknum` menor o igual que `first_blocknum` en `query_channel_range`
+      - DEBE establecer `first_blocknum` más `number_of_blocks` mayor que `first_blocknum` en `query_channel_range`.
+    - mensaje `reply_channel_range` sucesivo:
+      - DEBE tener `first_blocknum` igual o mayor que el `first_blocknum` anterior.
+    - DEBE establecer `sync_complete` en `false` si este no es el `reply_channel_range` final.
+    - el mensaje final `reply_channel_range`:
+      - DEBE tener `first_blocknum` más `number_of_blocks` igual o mayor que `query_channel_range` `first_blocknum` más `number_of_blocks`.
+    - DEBE establecer `sync_complete` en `true`.
 
-If the incoming message includes `query_option`, the receiver MAY append additional information to its reply:
-- if bit 0 in `query_option_flags` is set, the receiver MAY append a `timestamps_tlv` that contains `channel_update` timestamps for all `short_chanel_id`s in `encoded_short_ids`
-- if bit 1 in `query_option_flags` is set, the receiver MAY append a `checksums_tlv` that contains `channel_update` checksums for all `short_chanel_id`s in `encoded_short_ids`
+Si el mensaje entrante incluye `query_option`, el receptor PUEDE agregar información adicional a su respuesta:
+- si se establece el bit 0 en `query_option_flags`, el receptor PUEDE agregar un `timestamps_tlv` que contiene las marcas de tiempo `channel_update` para todos los `short_chanel_id` en `encoded_short_ids`
+- si se establece el bit 1 en `query_option_flags`, el receptor PUEDE agregar un `checksums_tlv` que contiene sumas de verificación `channel_update` para todos los `short_chanel_id` en `encoded_short_ids`.
 
 <!-- omit in toc -->
 #### Racional
@@ -649,8 +648,14 @@ By insisting that replies be in increasing order, the receiver can easily determ
 
 The addition of timestamp and checksum fields allow a peer to omit querying for redundant updates.
 
+Una sola respuesta puede ser demasiado grande para un solo paquete, por lo que es posible que se requieran múltiples respuestas. Queremos permitir que un par almacene resultados enlatados para (digamos) rangos de 1000 bloques, de modo que las respuestas puedan exceder el rango solicitado. Sin embargo, requerimos que cada respuesta sea relevante (que se superponga al rango solicitado).
+
+Al insistir en que las respuestas sean en orden creciente, el receptor puede determinar fácilmente si las respuestas están hechas: simplemente verifique si `first_blocknum` más `number_of_blocks` es igual o excede el `first_blocknum` más `number_of_blocks` que solicitó.
+
+La adición de campos de marca de tiempo y de suma de verificación permite a un par omitir la consulta de actualizaciones redundantes.
+
 <!-- omit in toc -->
-### The `gossip_timestamp_filter` Message
+### El mensaje `gossip_timestamp_filter`
 
 1. type: 265 (`gossip_timestamp_filter`) (`gossip_queries`)
 2. data:
@@ -658,159 +663,159 @@ The addition of timestamp and checksum fields allow a peer to omit querying for 
     * [`u32`:`first_timestamp`]
     * [`u32`:`timestamp_range`]
 
-This message allows a node to constrain future gossip messages to a specific range.  A node which wants any gossip messages would have
-to send this, otherwise `gossip_queries` negotiation means no gossip messages would be received.
+Este mensaje permite que un nodo restrinja los futuros mensajes de chismes a un rango específico. Un nodo que quiera mensajes de chismes tendría que enviar esto, de lo contrario, la negociación `gossip_queries` significa que no se recibirían mensajes de chismes.
 
-Note that this filter replaces any previous one, so it can be used multiple times to change the gossip from a peer.
+Tenga en cuenta que este filtro reemplaza a cualquier anterior, por lo que puede usarse varias veces para cambiar el chisme de un compañero.
 
 <!-- omit in toc -->
 #### Requisitos
 
-The sender:
-  - MUST set `chain_hash` to the 32-byte hash that uniquely identifies the chain that it wants the gossip to refer to.
+El remitente:
+  - DEBE establecer `chain_hash` en el hash de 32 bytes que identifica de forma única la cadena a la que quiere que se refiera el chisme.
 
-The receiver:
-  - SHOULD send all gossip messages whose `timestamp` is greater or equal to `first_timestamp`, and less than `first_timestamp` plus `timestamp_range`.
-    - MAY wait for the next outgoing gossip flush to send these.
-  - SHOULD send gossip messages as it generates them regardless of `timestamp`.
-  - Otherwise (relayed gossip):
-    - SHOULD restrict future gossip messages to those whose `timestamp` is greater or equal to `first_timestamp`, and less than `first_timestamp` plus `timestamp_range`.
-  - If a `channel_announcement` has no corresponding `channel_update`s:
-    - MUST NOT send the `channel_announcement`.
-  - Otherwise:
-    - MUST consider the `timestamp` of the `channel_announcement` to be the `timestamp` of a corresponding `channel_update`.
-    - MUST consider whether to send the `channel_announcement` after receiving the first corresponding `channel_update`.
-  - If a `channel_announcement` is sent:
-    - MUST send the `channel_announcement` prior to any corresponding `channel_update`s and `node_announcement`s.
+El receptor:
+  - DEBE enviar todos los mensajes de chismes cuyo `timestamp` sea mayor o igual a `first_timestamp`, y menor que `first_timestamp` más `timestamp_range`.
+    - PUEDE esperar a la próxima descarga de chismes salientes para enviarlos.
+  - DEBERÍA enviar mensajes de chismes a medida que los genera, independientemente de la `timestamp`.
+  - De lo contrario (chismes transmitidos):
+    - DEBERÍA restringir los futuros mensajes de chismes a aquellos cuyo `timestamp` sea mayor o igual a `first_timestamp`, y menor que `first_timestamp` más `timestamp_range`.
+  - Si un `channel_announcement` no tiene `channel_update`s correspondientes:
+    - NO DEBE enviar el `channel_announcement`.
+  - De lo contrario:
+    - DEBE considerar el `timestamp` del `channel_announcement` como el `timestamp` de una `channel_update` correspondiente.
+    - DEBE considerar si enviar el `channel_announcement` después de recibir el primer `channel_update` correspondiente.
+  - Si se envía un `channel_announcement`:
+    - DEBE enviar el `channel_announcement` antes de cualquier `channel_update` y `node_announcement` correspondientes.
 
 <!-- omit in toc -->
 #### Racional
 
-Since `channel_announcement` doesn't have a timestamp, we generate a likely one.  If there's no `channel_update` then it is not sent at all, which is most likely in the case of pruned channels.
+Dado que `channel_announcement` no tiene una marca de tiempo, generamos una probable. Si no hay `channel_update` entonces no se envía en absoluto, lo que es más probable en el caso de canales podados.
 
-Otherwise the `channel_announcement` is usually followed immediately by a `channel_update`. Ideally we would specify that the first (oldest) `channel_update`'s timestamp is to be used as the time of the `channel_announcement`, but new nodes on the network will not have this, and further would require the first `channel_update` timestamp to be stored. Instead, we allow any update to be used, which
-is simple to implement.
+De lo contrario, `channel_announcement` suele ir seguido inmediatamente de `channel_update`. Idealmente, especificaríamos que la primera (más antigua) marca de tiempo de `channel_update` se use como la hora del `channel_announcement`, pero los nuevos nodos en la red no tendrán esto, y además requerirían la primera marca de tiempo `channel_update` para ser almacenado. En su lugar, permitimos que se utilice cualquier actualización, que sea simple de implementar.
 
-In the case where the `channel_announcement` is nonetheless missed, `query_short_channel_ids` can be used to retrieve it.
+En el caso de que se pierda el `channel_announcement`, se puede usar `query_short_channel_ids` para recuperarlo.
 
-Nodes can use `timestamp_filter` to reduce their gossip load when they have many peers (eg. setting `first_timestamp` to `0xFFFFFFFF` after the first few peers, in the assumption that propagation is adequate).
-This assumption of adequate propagation does not apply for gossip messages generated directly by the node itself, so they should ignore filters.
+Los nodos pueden usar `timestamp_filter` para reducir su carga de chismes cuando tienen muchos pares (por ejemplo, establecer `first_timestamp` en `0xFFFFFFFF` después de los primeros pares, en el supuesto de que la propagación es adecuada).
+Esta suposición de propagación adecuada no se aplica a los mensajes de chismes generados directamente por el propio nodo, por lo que deben ignorar los filtros.
 
-## Initial Sync
+## Sincronización Inicial
 
-If a node requires an initial sync of gossip messages, it will be flagged in the `init` message, via a feature flag ([BOLT #9](09-features.md#assigned-localfeatures-flags)).
+Si un nodo requiere una sincronización inicial de mensajes de chismes, se marcará en el mensaje `init`, a través de una `featura flag` ([BOLT #9](09-features.md#assigned-localfeatures-flags)).
 
-Note that the `initial_routing_sync` feature is overridden (and should be considered equal to 0) by the `gossip_queries` feature if the latter is negotiated via `init`.
+Tenga en cuenta que la función `initial_routing_sync` se anula (y debe considerarse igual a 0) por la función `gossip_queries` si esta última se negocia a través de `init`.
 
-Note that `gossip_queries` does not work with older nodes, so the value of `initial_routing_sync` is still important to control interactions with them.
+Tenga en cuenta que `gossip_queries` no funciona con nodos más antiguos, por lo que el valor de `initial_routing_sync` sigue siendo importante para controlar las interacciones con ellos.
 
 <!-- omit in toc -->
 ### Requisitos
 
-A node:
-  - if the `gossip_queries` feature is negotiated:
-    - MUST NOT relay any gossip messages it did not generate itself, unless explicitly requested.
-  - otherwise:
-    - if it requires a full copy of the peer's routing state:
-      - SHOULD set the `initial_routing_sync` flag to 1.
-    - upon receiving an `init` message with the `initial_routing_sync` flag set to
+Un nodo:
+  - si se negocia la función `gossip_queries`:
+    - NO DEBE transmitir ningún mensaje de chismes que no haya generado él mismo, a menos que se solicite explícitamente.
+  - de lo contrario:
+    - si requiere una copia completa del estado de enrutamiento del par:
+      - DEBERÍA establecer el indicador `initial_routing_sync` en 1.
+    - al recibir un mensaje `init` con el indicador `initial_routing_sync` establecido en
     1:
-      - SHOULD send gossip messages for all known channels and nodes, as if they were just received.
-    - if the `initial_routing_sync` flag is set to 0, OR if the initial sync was completed:
-      - SHOULD resume normal operation, as specified in the following [Rebroadcasting](#rebroadcasting) section.
+      - DEBERÍA enviar mensajes de chismes para todos los canales y nodos conocidos, como si fueran recién recibidos.
+    - si el indicador `initial_routing_sync` se establece en 0, O si se completó la sincronización inicial:
+      - DEBERÍA reanudar el funcionamiento normal, como se especifica en la siguiente sección [Retransmisión](#retransmisión).
 
-## Rebroadcasting
+## Retransmisión
 
 <!-- omit in toc -->
 ### Requisitos
 
-A receiving node:
-  - upon receiving a new `channel_announcement` or a `channel_update` or `node_announcement` with an updated `timestamp`:
-    - SHOULD update its local view of the network's topology accordingly.
-  - after applying the changes from the announcement:
-    - if there are no channels associated with the corresponding origin node:
-      - MAY purge the origin node from its set of known nodes.
-    - otherwise:
-      - SHOULD update the appropriate metadata AND store the signature associated with the announcement.
-        - Note: this will later allow the node to rebuild the announcement for its peers.
+Un nodo receptor:
+  - al recibir un nuevo `channel_announcement` o `channel_update` o `node_announcement` con una `timestamp` actualizada:
+    - DEBE actualizar su vista local de la topología de la red en consecuencia.
+  - después de aplicar los cambios del anuncio:
+    - si no hay canales asociados al nodo de origen correspondiente:
+      - PUEDE purgar el nodo de origen de su conjunto de nodos conocidos.
+    - de lo contrario:
+      - DEBE actualizar los metadatos apropiados Y almacenar la firma asociada con el anuncio.
+        - Nota: esto permitirá que el nodo reconstruya el anuncio para sus pares más adelante.
 
-A node:
-  - if the `gossip_queries` feature is negotiated:
-    - MUST not send gossip it did not generate itself, until it receives `gossip_timestamp_filter`.
-  - SHOULD flush outgoing gossip messages once every 60 seconds, independently of the arrival times of the messages.
-    - Note: this results in staggered announcements that are unique (not duplicated).
-    - SHOULD NOT forward gossip messages to peers who sent `networks` in `init` and did not specify the `chain_hash` of this gossip message.
-  - MAY re-announce its channels regularly.
-    - Note: this is discouraged, in order to keep the resource requirements low.
-  - upon connection establishment:
-    - SHOULD send all `channel_announcement` messages, followed by the latest `node_announcement` AND `channel_update` messages.
+Un nodo:
+  - si se negocia la función `gossip_queries`:
+    - No DEBE enviar chismes que no haya generado él mismo, hasta que reciba `gossip_timestamp_filter`.
+  - DEBERÍA vaciar los mensajes de chismes salientes una vez cada 60 segundos, independientemente de la hora de llegada de los mensajes.
+    - Nota: esto da como resultado anuncios escalonados que son únicos (no duplicados).
+    - NO DEBERÍA reenviar mensajes de chismes a compañeros que enviaron `networks` en `init` y no especificaron el `chain_hash` de este mensaje de chismes.
+  - PUEDE volver a anunciar sus canales periódicamente.
+    - Nota: esto no se recomienda para mantener bajos los requisitos de recursos.
+  - tras el establecimiento de la conexión:
+    - DEBE enviar todos los mensajes `channel_announcement`, seguidos de los últimos mensajes `node_announcement` Y `channel_update`.
+
 
 <!-- omit in toc -->
 ### Racional
 
 Una vez que se ha procesado el mensaje de chismes, se agrega a una lista de mensajes salientes, destinados a los pares del nodo de procesamiento, reemplazando cualquier actualización anterior del nodo de origen. Esta lista de mensajes de chismes se eliminará a intervalos regulares; una transmisión de este tipo con almacenamiento y reenvío retrasado se denomina _staggered broadcast_ o _difusión escalonada_. Además, tal procesamiento por lotes forma un límite de tasa natural con gastos generales bajos.
 
-El envío de todos los chismes sobre la reconexión es naive, pero simple, y permite el `bootstrapping` de nuevos nodos, así como la actualización de nodos que han estado fuera de línea durante algún tiempo. La opción `gossip_queries` permite una sincronización más refinada.
+El envío de todos los chismes sobre la reconexión es naif, pero simple, y permite el `bootstrapping` de nuevos nodos, así como la actualización de nodos que han estado fuera de línea durante algún tiempo. La opción `gossip_queries` permite una sincronización más refinada.
 
-## HTLC Fees
-
-<!-- omit in toc -->
-### Requisitos
-
-The origin node:
-  - SHOULD accept HTLCs that pay a fee equal to or greater than:
-    - fee_base_msat + ( amount_to_forward * fee_proportional_millionths / 1000000 )
-  - SHOULD accept HTLCs that pay an older fee, for some reasonable time after sending `channel_update`.
-    - Note: this allows for any propagation delay.
-
-## Pruning the Network View
+## Tarifa de HTLC
 
 <!-- omit in toc -->
 ### Requisitos
 
-A node:
-  - SHOULD monitor the funding transactions in the blockchain, to identify channels that are being closed.
-  - if the funding output of a channel is being spent:
-    - SHOULD be removed from the local network view AND be considered closed.
-  - if the announced node no longer has any associated open channels:
-    - MAY prune nodes added through `node_announcement` messages from their local view.
-      - Note: this is a direct result of the dependency of a `node_announcement` being preceded by a `channel_announcement`.
+El nodo de origen:
+  - DEBERÍA aceptar HTLC que paguen una tarifa igual o superior a:
+    - fee_base_msat + (cantidad_a_reenviar * fee_proportional_millionths / 1000000)
+  - DEBERÍA aceptar HTLC que paguen una tarifa anterior, durante un tiempo razonable después de enviar `channel_update`.
+    - Nota: esto permite cualquier retardo de propagación.
+
+## Podando la de Vista de Red <!-- TODO: Revisar el texto original "Pruning the Network View" -->
 
 <!-- omit in toc -->
-### Recommendation on Pruning Stale Entries
+### Requisitos
+
+Un nodo:
+  - DEBERÍA monitorear las transacciones de financiación en la cadena de bloques, para identificar los canales que se están cerrando.
+  - si se gasta la producción de fondos de un canal:
+    - DEBE eliminarse de la vista de red local Y considerarse cerrado.
+  - si el nodo anunciado ya no tiene ningún canal abierto asociado:
+    - PUEDE eliminar los nodos agregados a través de mensajes `node_announcement` desde su vista local.
+      - Nota: este es un resultado directo de la dependencia de un `node_announcement` precedido por un `channel_announcement`.
+      - 
+
+<!-- omit in toc -->
+### Recomendación sobre la Poda de Entradas Obsoletas
 
 <!-- omit in toc -->
 #### Requisitos
 
-A node:
-  - if the `timestamp` of the latest `channel_update` in either direction is older than two weeks (1209600 seconds):
-    - MAY prune the channel.
-    - MAY ignore the channel.
-    - Note: this is an individual node policy and MUST NOT be enforced by forwarding peers, e.g. by closing channels when receiving outdated gossip messages.
+Un nodo:
+  - si la `timestamp` de la última `channel_update` en cualquier dirección tiene más de dos semanas (1209600 segundos):
+    - PUEDE podar el canal.
+    - PUEDE ignorar el canal.
+    - Nota: esta es una política de nodo individual y NO DEBE ser aplicada por los pares de reenvío, p. cerrando canales al recibir mensajes de chismes desactualizados.
 
 <!-- omit in toc -->
 #### Racional
 
-Several scenarios may result in channels becoming unusable and its endpoints becoming unable to send updates for these channels. For example, this occurs if both endpoints lose access to their private keys and can neither sign `channel_update`s nor close the channel on-chain. In this case, the channels are unlikely to be part of a computed route, since they would be partitioned off from the rest of the network; however, they would remain in the local network view would be forwarded to other peers indefinitely.
+Varios escenarios pueden dar lugar a que los canales se vuelvan inutilizables y sus terminales no puedan enviar actualizaciones para estos canales. Por ejemplo, esto ocurre si ambos extremos pierden el acceso a sus claves privadas y no pueden firmar `channel_update`s ni cerrar el canal en cadena. En este caso, es poco probable que los canales formen parte de una ruta calculada, ya que se separarían del resto de la red; sin embargo, permanecerían en la vista de red local y se reenviarían a otros pares indefinidamente.
 
-The oldest `channel_update` is used to prune the channel since both sides need to be active in order for the channel to be usable. Doing so prunes channels even if one side continues to send fresh `channel_update`s but the other node has disappeared.
+El `channel_update` más antiguo se usa para eliminar el canal, ya que ambos lados deben estar activos para que el canal sea utilizable. Al hacerlo, se eliminan los canales incluso si un lado continúa enviando `channel_update`s nuevos pero el otro nodo ha desaparecido.
 
-## Recommendations for Routing
+## Recomendaciones para el enrutamiento
 
-When calculating a route for an HTLC, both the `cltv_expiry_delta` and the fee need to be considered: the `cltv_expiry_delta` contributes to the time that funds will be unavailable in the event of a worst-case failure. The relationship between these two attributes is unclear, as it depends on the reliability of the nodes involved.
+Al calcular una ruta para un HTLC, se deben considerar tanto el `cltv_expiry_delta` como la tarifa: el `cltv_expiry_delta` contribuye al tiempo que los fondos no estarán disponibles en el caso de una falla en el peor de los casos. La relación entre estos dos atributos no está clara, ya que depende de la confiabilidad de los nodos involucrados.
 
-If a route is computed by simply routing to the intended recipient and summing the `cltv_expiry_delta`s, then it's possible for intermediate nodes to guess their position in the route. Knowing the CLTV of the HTLC, the surrounding network topology, and the `cltv_expiry_delta`s gives an attacker a way to guess the intended recipient. Therefore, it's highly desirable to add a random offset to the CLTV that the intended recipient will receive, which bumps all CLTVs along the route.
+Si una ruta se calcula simplemente enrutando al destinatario deseado y sumando los `cltv_expiry_delta`s, entonces es posible que los nodos intermedios adivinen su posición en la ruta. Conocer el CLTV del HTLC, la topología de red circundante y `cltv_expiry_delta`s le da al atacante una forma de adivinar el destinatario previsto. Por lo tanto, es muy recomendable agregar una compensación aleatoria al CLTV que recibirá el destinatario previsto, que golpea a todos los CLTV a lo largo de la ruta.
 
-In order to create a plausible offset, the origin node MAY start a limited random walk on the graph, starting from the intended recipient and summing the `cltv_expiry_delta`s, and use the resulting sum as the offset.
-This effectively creates a _shadow route extension_ to the actual route and provides better protection against this attack vector than simply picking a random offset would.
+Para crear un desplazamiento plausible, el nodo de origen PUEDE iniciar una caminata aleatoria limitada en el gráfico, comenzando desde el destinatario deseado y sumando los `cltv_expiry_delta`s, y usar la suma resultante como el desplazamiento.
+Esto crea efectivamente una _extensión de ruta oculta_ a la ruta real y proporciona una mejor protección contra este vector de ataque que simplemente elegir un desplazamiento aleatorio.
 
-Other more advanced considerations involve diversification of route selection, to avoid single points of failure and detection, and balancing of local channels.
+Otras consideraciones más avanzadas implican la diversificación de la selección de rutas, para evitar puntos únicos de falla y detección, y el equilibrio de los canales locales.
 
 
 <!-- omit in toc -->
-### Routing Example
+### Ejemplo de enrutamiento
 
-Consider four nodes:
+Considere cuatro nodos:
 
 
 ```
@@ -823,23 +828,23 @@ A     C
    D
 ```
 
-Each advertises the following `cltv_expiry_delta` on its end of every channel:
+Cada uno anuncia el siguiente `cltv_expiry_delta` en su extremo de cada canal:
 
-1. A: 10 blocks
-2. B: 20 blocks
-3. C: 30 blocks
-4. D: 40 blocks
+1. A: 10 bloques
+2. B: 20 bloques
+3. C: 30 bloques
+4. D: 40 bloques
 
-C also uses a `min_final_cltv_expiry_delta` of 9 (the default) when requesting payments.
+C también usa un `min_final_cltv_expiry_delta` de 9 (el valor predeterminado) al solicitar pagos.
 
-Also, each node has a set fee scheme that it uses for each of its channels:
+Además, cada nodo tiene un esquema de tarifas establecido que utiliza para cada uno de sus canales:
 
-1. A: 100 base + 1000 millionths
-2. B: 200 base + 2000 millionths
-3. C: 300 base + 3000 millionths
-4. D: 400 base + 4000 millionths
+1. A: 100 base + 1000 millonésimas
+2. B: 200 base + 2000 millonésimas
+3. C: 300 base + 3000 millonésimas
+4. D: 400 base + 4000 millonésimas
 
-The network will see eight `channel_update` messages:
+La red verá ocho mensajes `channel_update`:
 
 1. A->B: `cltv_expiry_delta` = 10, `fee_base_msat` = 100, `fee_proportional_millionths` = 1000
 1. A->D: `cltv_expiry_delta` = 10, `fee_base_msat` = 100, `fee_proportional_millionths` = 1000
@@ -850,7 +855,7 @@ The network will see eight `channel_update` messages:
 1. C->B: `cltv_expiry_delta` = 30, `fee_base_msat` = 300, `fee_proportional_millionths` = 3000
 1. C->D: `cltv_expiry_delta` = 30, `fee_base_msat` = 300, `fee_proportional_millionths` = 3000
 
-**B->C.** If B were to send 4,999,999 millisatoshi directly to C, it would neither charge itself a fee nor add its own `cltv_expiry_delta`, so it would use C's requested `min_final_cltv_expiry_delta` of 9. Presumably it would also add a _shadow route_ to give an extra CLTV of 42. Additionally, it could add extra CLTV deltas at other hops, as these values represent a minimum, but chooses not to do so here, for the sake of simplicity:
+**B->C.** Si B enviara 4,999,999 millisatoshi directamente a C, no se cobraría una tarifa ni agregaría su propio `cltv_expiry_delta`, por lo que usaría el `min_final_cltv_expiry_delta` solicitado por C de 9. Presumiblemente, también agregue una _ruta de sombra_ para dar un CLTV adicional de 42. Además, podría agregar deltas de CLTV adicionales en otros saltos, ya que estos valores representan un mínimo, pero elige no hacerlo aquí, en aras de la simplicidad:
 
    * `amount_msat`: 4999999
    * `cltv_expiry`: current-block-height + 9 + 42
@@ -858,13 +863,13 @@ The network will see eight `channel_update` messages:
      * `amt_to_forward` = 4999999
      * `outgoing_cltv_value` = current-block-height + 9 + 42
 
-**A->B->C.** If A were to send 4,999,999 millisatoshi to C via B, it needs to pay B the fee it specified in the B->C `channel_update`, calculated as per [HTLC Fees](#htlc-fees):
+**A->B->C.** Si A enviara 4,999,999 millisatoshi a C a través de B, debe pagar a B la tarifa que especificó en B->C `channel_update`, calculada según [HTLC Fees](#htlc-tarifas):
 
         fee_base_msat + ( amount_to_forward * fee_proportional_millionths / 1000000 )
 
         200 + ( 4999999 * 2000 / 1000000 ) = 10199
 
-Similarly, it would need to add B->C's `channel_update` `cltv_expiry_delta` (20), C's requested `min_final_cltv_expiry_delta` (9), and the cost for the _shadow route_ (42). Thus, A->B's `update_add_htlc` message would be:
+De manera similar, necesitaría agregar `channel_update` `cltv_expiry_delta` de B->C (20), `min_final_cltv_expiry_delta` solicitado por C (9) y el costo de la _ruta oculta_ (42). Por lo tanto, el mensaje `update_add_htlc` de A->B sería:
 
    * `amount_msat`: 5010198
    * `cltv_expiry`: current-block-height + 20 + 9 + 42
@@ -872,9 +877,9 @@ Similarly, it would need to add B->C's `channel_update` `cltv_expiry_delta` (20)
      * `amt_to_forward` = 4999999
      * `outgoing_cltv_value` = current-block-height + 9 + 42
 
-B->C's `update_add_htlc` would be the same as B->C's direct payment above.
+El `update_add_htlc` de B->C sería el mismo que el pago directo de B->C anterior.
 
-**A->D->C.** Finally, if for some reason A chose the more expensive route via D, A->D's `update_add_htlc` message would be:
+**A->D->C.** Finalmente, si por alguna razón A elige la ruta más cara a través de D, el mensaje `update_add_htlc` de A->D sería:
 
    * `amount_msat`: 5020398
    * `cltv_expiry`: current-block-height + 40 + 9 + 42
@@ -882,8 +887,7 @@ B->C's `update_add_htlc` would be the same as B->C's direct payment above.
      * `amt_to_forward` = 4999999
      * `outgoing_cltv_value` = current-block-height + 9 + 42
 
-And D->C's `update_add_htlc` would again be the same as B->C's direct payment above.
-
+Y `update_add_htlc` de D->C sería nuevamente el mismo que el pago directo de B->C anterior.
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
