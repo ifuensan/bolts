@@ -189,7 +189,7 @@ Si bien los canales no deben anunciarse antes de que sean lo suficientemente pro
 
 Para evitar almacenar mensajes excesivamente grandes, pero aún así permitir una expansión futura razonable, los nodos pueden restringir la retransmisión (tal vez estadísticamente).
 
-Las nuevas características del canal son posibles en el futuro: las características compatibles hacia atrás (u opcional) tendrán `feature bits` _impares_, mientras que las características incompatibles tendrán `feature bits` _pares_  (["It's OK to be odd!"](00-introduction.md#glossary-and-terminology-guide)). <!-- TODO: Solucionar enlace -->
+Las nuevas características del canal son posibles en el futuro: las características compatibles hacia atrás (u opcional) tendrán `feature bits` _impares_, mientras que las características incompatibles tendrán `feature bits` _pares_  (["It's OK to be odd!"](00-introduction.md#its-ok-to-be-odd)). <!-- TODO: Solucionar enlace -->
 
 Se utiliza un retraso de 12 bloques al olvidar un canal en la `funding output` para permitir que un nuevo `channel_announcement` propague que indica que este canal fue unido.
 
