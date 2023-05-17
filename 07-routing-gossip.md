@@ -3,7 +3,7 @@
 
 Esta especificación describe mecanismos simples de descubrimiento de nodos, descubrimiento de canales y actualización de canales que no dependen de un tercero para difundir la información.
 
-El descubrimiento de nodos y canales tiene dos propósitos diferentes:
+El descubrimiento de nodos y de canales, tiene dos propósitos diferentes:
 
  - El descubrimiento de nodos permite a los nodos transmitir su ID, host y puerto, para que otros nodos puedan abrir conexiones y establecer canales de pago con ellos.
  - El descubrimiento de canales permite la creación y el mantenimiento de una vista local de la topología de la red, de modo que un nodo pueda descubrir rutas a los destinos deseados.
@@ -16,13 +16,13 @@ Para soportar el descubrimiento de canales y nodos, se admiten tres *mensajes de
 
 
 <!-- omit in toc -->
-# Table of Contents
+# Índice
 
 - [Definición del `short_channel_id`](#definición-del-short_channel_id)
 - [El mensaje `announcement_signatures`](#el-mensaje-announcement_signatures)
 - [El mensaje `channel_announcement`](#el-mensaje-channel_announcement)
 - [El mensaje `node_announcement`](#el-mensaje-node_announcement)
-- [El mensajae `channel_update`](#el-mensajae-channel_update)
+- [El mensaje `channel_update`](#el-mensaje-channel_update)
 - [Mensajes de consulta](#mensajes-de-consulta)
 - [Sincronización Inicial](#sincronización-inicial)
 - [Retransmisión](#retransmisión)
@@ -38,7 +38,7 @@ Se construye de la siguiente manera:
   2. los siguientes 3 bytes: indicando el índice de transacción dentro del bloque
   3. los 2 bytes menos significativos: indica el índice de salida que paga al canal.
 
-El formato legible por humanos estándar para `short_channel_id` se crea imprimiendo los componentes anteriores, en el orden: altura del bloque, índice de transacción e índice de salida.
+El formato estándar legible por humanos para `short_channel_id` se crea imprimiendo los componentes anteriores, en el orden: altura del bloque, índice de transacción e índice de salida.
 Cada componente está impreso como un número decimal y separados entre sí por la letra minúscula `x`.
 Por ejemplo, un `short_channel_id` podría escribirse como `539268x845x1`, lo que indica un canal en la salida 1 de la transacción en el índice 845 del bloque en la altura 539268.
 
@@ -102,7 +102,7 @@ La razón para permitir el aplazamiento de un `announcement_signatures` prematur
 
 ## El mensaje `channel_announcement`
 
-Este mensaje de chismes contiene información sobre la propiedad de un canal. Vincula cada clave de Bitcoin en cadena a la clave de nodo Lightning asociada, y viceversa. El canal no se puede utilizar prácticamente hasta que al menos un lado haya anunciado sus niveles de tarifas y su vencimiento, usando `channel_update`.
+Este mensaje de chismes contiene información sobre la propiedad de un canal. Vincula cada clave de Bitcoin `on chain` a la clave del nodo Lightning asociada, y viceversa. El canal no es prácticamente utilizable hasta que al menos un lado haya anunciado sus niveles de tarifa y vencimiento, usando`channel_update`.
 
 Probar la existencia de un canal entre `node_1` y `node_2` requiere:
 
@@ -115,7 +115,7 @@ Suponiendo que todos los nodos conocen los resultados de las transacciones no ga
 
 Las dos últimas pruebas se logran a través de firmas explícitas: `bitcoin_signature_1` y `bitcoin_signature_2` se generan para cada `bitcoin_key` y se firma cada uno de los `node_id` correspondientes.
 
-También es necesario demostrar que `node_1` y `node_2` están de acuerdo con el mensaje de anuncio: esto se logra al tener una firma de cada `node_id` (`node_signature_1` y `node_signature_2`) firmando el mensaje.
+También es necesario demostrar que `node_1` y `node_2` están de acuerdo con el `node announcement`: esto se logra al tener una firma de cada `node_id` (`node_signature_1` y `node_signature_2`) firmando el mensaje.
 
 1. type: 256 (`channel_announcement`)
 2. data:
@@ -132,6 +132,7 @@ También es necesario demostrar que `node_1` y `node_2` están de acuerdo con el
     * [`point`:`bitcoin_key_1`]
     * [`point`:`bitcoin_key_2`]
 
+Mediante las firmas y el `short_channel_id`, queda enlazado ese canal a la blockchain, ya que debe estar confirmado `on-chain`.
 
 <!-- omit in toc -->
 ### Requisitos
@@ -161,7 +162,7 @@ El nodo receptor:
     - DEBE ignorar el mensaje.
   - de lo contrario:
     - si `bitcoin_signature_1`, `bitcoin_signature_2`, `node_signature_1` O `node_signature_2` no son válidos O NO son correctos:
-      - DEBERÍA enviar una `warning`.
+      - DEBERÍA enviar un `warning`.
       - PUEDE cerrar la conexión.
       - DEBE ignorar el mensaje.
     - de lo contrario:
@@ -185,7 +186,7 @@ Se requiere que ambos nodos firmen para indicar que están dispuestos a enrutar 
 
 La lista negra de los nodos conflictivos no permite múltiples anuncios diferentes. Tales anuncios conflictivos nunca deben ser transmitidos por ningún nodo, ya que esto implica que las claves se han filtrado.
 
-Si bien los canales no deben anunciarse antes de que sean lo suficientemente profundos, el requisito contra el retransmisión solo se aplica si la transacción no se ha movido a un bloque diferente. 
+Si bien los canales no deben anunciarse antes de que sean lo suficientemente profundos, el requisito contra la retransmisión solo se aplica si la transacción no se ha movido a un bloque diferente. 
 
 Para evitar almacenar mensajes excesivamente grandes, pero aún así permitir una expansión futura razonable, los nodos pueden restringir la retransmisión (tal vez estadísticamente).
 
@@ -290,9 +291,9 @@ Es posible que se agreguen nuevos tipos de direcciones en el futuro; como los de
 <!-- omit in toc -->
 ### Consideraciones de Seguridad para los Alias de Nodo
 
-Los alias de nodo son definidos por el usuario y proporcionan una vía potencial para ataques de inyección, tanto durante el proceso de representación como durante la persistencia.
+Los alias de nodo son definidos por el usuario y proporcionan una vía potencial para ataques de inyección, tanto durante el proceso de interpretación como durante la persistencia.
 
-Los alias de nodos siempre deben desinfectarse antes de mostrarse en contextos HTML/Javascript o cualquier otro marco de representación interpretado dinámicamente. De manera similar, considere usar declaraciones preparadas, validación de entrada, y escapar carácteres para proteger contra vulnerabilidades de inyección y motores de persistencia que admiten SQL u otros lenguajes de consulta interpretados dinámicamente.
+Los alias de nodos, siempre deben desinfectarse antes de mostrarse en contextos HTML/Javascript o cualquier otro marco de representación interpretado dinámicamente. De manera similar, considere usar declaraciones preparadas, validación de entrada, y escapar carácteres para proteger contra vulnerabilidades de inyección y motores de persistencia que admiten SQL u otros lenguajes de consulta interpretados dinámicamente.
 
 * [Stored and Reflected XSS Prevention](https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet)
 * [DOM-based XSS Prevention](https://www.owasp.org/index.php/DOM_based_XSS_Prevention_Cheat_Sheet)
@@ -300,7 +301,7 @@ Los alias de nodos siempre deben desinfectarse antes de mostrarse en contextos H
 
 No seas como la escuela de [Little Bobby Tables](https://xkcd.com/327/).
 
-## El mensajae `channel_update`
+## El mensaje `channel_update`
 
 Una vez que se ha anunciado inicialmente un canal, cada lado anuncia de forma independiente las tarifas y el delta de vencimiento mínimo que requiere para retransmitir los HTLC a través de este canal. Cada uno usa el shortid del canal de 8 bytes que coincide con el `channel_announcement` y el campo `channel_flags` de 1 bit para indicar en qué extremo del canal está (origen o final). Un nodo puede hacer esto varias veces para cambiar las tarifas.
 
@@ -404,10 +405,10 @@ El nodo receptor:
 <!-- omit in toc -->
 ### Racional
 
-Los nodos utilizan el campo `timestamp` para eliminar `channel_update`s que están demasiado lejos en el futuro o no se han actualizado en dos semanas (`pruning`); por lo que tiene sentido que sea una marca de tiempo UNIX (es decir, segundos desde UTC 1970-01-01). Sin embargo, esto no puede ser un requisito estricto, dado el posible caso de dos `channel_update` en un solo segundo.
+Los nodos utilizan el campo `timestamp` para eliminar `channel_update`s que están demasiado lejos en el futuro o no se han actualizado en dos semanas (`pruning`); por lo que tiene sentido que sea una marca de tiempo UNIX (es decir, segundos desde UTC 1970-01-01). Sin embargo, esto no puede ser un requisito estricto, dado el posible caso de dos `channel_update` en un mismo segundo.
 
 Se supone que más de un mensaje `channel_update` cambiando los parámetros del canal en el mismo segundo puede ser un intento de DoS y, por lo tanto, el nodo responsable de firmar dichos mensajes puede estar en la lista negra. Sin embargo, un nodo puede enviar un mismo mensaje `channel_update` con una firma diferente (cambiando el nonce en la firma cuando está firmando) y, por lo tanto, los campos aparte de la firma se verifican para ver si los parámetros del canal han cambiado para la misma marca de tiempo. También es importante tener en cuenta que las firmas ECDSA son maleables. Entonces, un nodo intermedio que recibió el mensaje `channel_update` puede retransmitirlo simplemente cambiando el componente `s` de la firma con `-s`.
-Sin embargo, esto no debería dar como resultado la incluisión en la lista negra del `node_id` del nodo que originó el mensaje.
+Sin embargo, esto no debería dar como resultado la inclusión en la lista negra del `node_id` del nodo que originó el mensaje.
 
 La recomendación contra `channel_update`s redundantes minimiza el spam en la red, sin embargo, a veces es inevitable. Por ejemplo, un canal con un compañero al que no se puede acceder eventualmente generará una `channel_update` para indicar que el canal está deshabilitado, y otra actualización volverá a habilitar el canal cuando el compañero restablezca el contacto. Debido a que los mensajes de chismes se procesan por lotes y reemplazan a los anteriores, el resultado puede ser una única actualización aparentemente redundante.
 
@@ -435,7 +436,7 @@ Los mensajes de consulta se pueden ampliar con campos opcionales que pueden ayud
 Los nodos pueden indicar que admiten consultas de chismes extendidas con el bit de función `gossip_queries_ex`.
 
 <!-- omit in toc -->
-### The `query_short_channel_ids`/`reply_short_channel_ids_end` Messages
+### Los mensajes `query_short_channel_ids`/`reply_short_channel_ids_end`
 
 1. type: 261 (`query_short_channel_ids`) (`gossip_queries`)
 2. data:
@@ -467,8 +468,6 @@ Los indicadores de consulta deben codificarse mínimamente (`minimally encoded`)
 2. data:
     * [`chain_hash`:`chain_hash`]
     * [`byte`:`full_information`]
-
-This is a general mechanism which lets a node query for the `channel_announcement` and `channel_update` messages for specific channels (identified via `short_channel_id`s). This is usually used either because a node sees a `channel_update` for which it has no `channel_announcement` or because it has obtained previously unknown `short_channel_id`s from `reply_channel_range`.
 
 Este es un mecanismo general que permite que un nodo consulte los mensajes `channel_announcement` y `channel_update` para canales específicos (identificados a través de `short_channel_id`s). Esto generalmente se usa porque un nodo ve una `channel_update` para la cual no tiene `channel_announcement` o porque ha obtenido `short_channel_id`s previamente desconocidos de `reply_channel_range`.
 
@@ -642,7 +641,7 @@ Si el mensaje entrante incluye `query_option`, el receptor PUEDE agregar informa
 <!-- omit in toc -->
 #### Racional
 
-Una sola respuesta puede ser demasiado grande para un solo paquete, por lo que es posible que se requieran múltiples respuestas. Queremos permitir que un par almacene resultados enlatados para (digamos) rangos de 1000 bloques, de modo que las respuestas puedan exceder el rango solicitado. Sin embargo, requerimos que cada respuesta sea relevante (que se superponga al rango solicitado).
+Una sola respuesta puede ser demasiado grande para un solo paquete, por lo que es posible que se requieran múltiples respuestas. Queremos permitir que un par conserve los resultados para (digamos) rangos de 1000 bloques, de modo que las respuestas puedan exceder el rango solicitado. Sin embargo, requerimos que cada respuesta sea relevante (que se superponga al rango solicitado).
 
 Al insistir en que las respuestas sean en orden creciente, el receptor puede determinar fácilmente si las respuestas están hechas: simplemente verifique si `first_blocknum` más `number_of_blocks` es igual o excede el `first_blocknum` más `number_of_blocks` que solicitó.
 
