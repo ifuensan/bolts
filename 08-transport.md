@@ -363,7 +363,7 @@ Se recomienda enfáticamente que las bibliotecas validadas, de uso común y exis
 
 Para hacer un `handshake` de prueba repetible, lo siguiente especifica qué devolverá `generateKey()` (es decir, el valor de `e.priv`) para cada lado. Tenga en cuenta que esto es una violación de la especificación, que requiere aleatoriedad.
 
-## Pruebas de iniciador
+## Pruebas del iniciador
 
 El iniciador DEBERÍA producir la salida dada cuando se alimenta esta entrada.
 Los comentarios reflejan estados internos, con fines de depuración.
@@ -451,9 +451,9 @@ Los comentarios reflejan estados internos, con fines de depuración.
     output: ERROR (ACT2_BAD_TAG)
 ```
 
-## Responder Tests
+## Pruebas de respuesta
 
-The responder SHOULD produce the given output when fed this input.
+El respondedor DEBE producir la salida dada cuando recibe esta entrada.
 
 ```
     name: transport-responder successful handshake
@@ -596,9 +596,9 @@ The responder SHOULD produce the given output when fed this input.
     output: ERROR (ACT3_BAD_TAG)
 ```
 
-## Message Encryption Tests
+## Pruebas de cifrado de mensajes
 
-In this test, the initiator sends length 5 messages containing "hello" 1001 times. Only six example outputs are shown, for brevity and to test two key rotations:
+En esta prueba, el iniciador envía mensajes de longitud 5 que contienen "hola" 1001 veces. Solo se muestran seis salidas de ejemplo, por brevedad y para probar dos rotaciones clave:
 
 	name: transport-message test
     ck=0x919219dbb2920afa8db80f9a51787a840bcf111ed8d588caf9ab4be716e42b01
@@ -619,16 +619,16 @@ In this test, the initiator sends length 5 messages containing "hello" 1001 time
     output 1000: 0x4a2f3cc3b5e78ddb83dcb426d9863d9d9a723b0337c89dd0b005d89f8d3c05c52b76b29b740f09
     output 1001: 0x2ecd8c8a5629d0d02ab457a0fdd0f7b90a192cd46be5ecb6ca570bfc5e268338b1a16cf4ef2d36
 
-# Acknowledgments
+# Agradecimientos
 
 TODO(roasbeef); fin
 
-# References
+# Referencias
 1. <a id="reference-1">https://tools.ietf.org/html/rfc8439</a>
 2. <a id="reference-2">http://noiseprotocol.org/noise.html</a>
 3. <a id="reference-3">https://tools.ietf.org/html/rfc5869</a>
 
-# Authors
+# Autores
 
 FIXME
 
