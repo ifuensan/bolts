@@ -1,22 +1,10 @@
 # BOLT #9: Assigned Feature Flags
 
-This document tracks the assignment of `features` flags in the `init`
-message ([BOLT #1](01-messaging.md)), as well as `features` fields in
-the `channel_announcement` and `node_announcement` messages ([BOLT
-#7](07-routing-gossip.md)).  The flags are tracked separately, since
-new flags will likely be added over time.
+This document tracks the assignment of `features` flags in the `init` message ([BOLT #1](01-messaging.md)), as well as `features` fields in the `channel_announcement` and `node_announcement` messages ([BOLT #7](07-routing-gossip.md)).  The flags are tracked separately, since new flags will likely be added over time.
 
-Flags are numbered from the least-significant bit, at bit 0 (i.e. 0x1,
-an _even_ bit). They are generally assigned in pairs so that features
-can be introduced as optional (_odd_ bits) and later upgraded to be compulsory
-(_even_ bits), which will be refused by outdated nodes:
-see [BOLT #1: The `init` Message](01-messaging.md#the-init-message).
+Flags are numbered from the least-significant bit, at bit 0 (i.e. 0x1, an _even_ bit). They are generally assigned in pairs so that features can be introduced as optional (_odd_ bits) and later upgraded to be compulsory (_even_ bits), which will be refused by outdated nodes: see [BOLT #1: The `init` Message](01-messaging.md#the-init-message).
 
-Some features don't make sense on a per-channels or per-node basis, so
-each feature defines how it is presented in those contexts.  Some
-features may be required for opening a channel, but not a requirement
-for use of the channel, so the presentation of those features depends
-on the feature itself.
+Some features don't make sense on a per-channels or per-node basis, so each feature defines how it is presented in those contexts.  Some features may be required for opening a channel, but not a requirement for use of the channel, so the presentation of those features depends on the feature itself.
 
 The Context column decodes as follows:
 
@@ -56,12 +44,9 @@ We define `option_anchors` as `option_anchor_outputs || option_anchors_zero_fee_
 ## Requirements
 
 The origin node:
-  * If it supports a feature above, SHOULD set the corresponding odd
-    bit in all feature fields indicated by the Context column unless
+  * If it supports a feature above, SHOULD set the corresponding odd bit in all feature fields indicated by the Context column unless
 	indicated that it must set the even feature bit instead.
-  * If it requires a feature above, MUST set the corresponding even
-    feature bit in all feature fields indicated by the Context column,
-    unless indicated that it must set the odd feature bit instead.
+  * If it requires a feature above, MUST set the corresponding even feature bit in all feature fields indicated by the Context column, unless indicated that it must set the odd feature bit instead.
   * MUST NOT set feature bits it does not support.
   * MUST NOT set feature bits in fields not specified by the table above.
   * MUST set all transitive feature dependencies.
@@ -70,25 +55,15 @@ The origin node MUST support:
   * `var_onion_optin`
 
 The requirements for receiving specific bits are defined in the linked sections in the table above.
-The requirements for feature bits that are not defined
-above can be found in [BOLT #1: The `init` Message](01-messaging.md#the-init-message).
+The requirements for feature bits that are not defined above can be found in [BOLT #1: The `init` Message](01-messaging.md#the-init-message).
 
 ## Rationale
 
-There is no _even_ bit for `initial_routing_sync`, as there would be little
-point: a local node can't determine if a remote node complies, and it must
-interpret the flag, as defined in the initial spec.
+There is no _even_ bit for `initial_routing_sync`, as there would be little point: a local node can't determine if a remote node complies, and it must interpret the flag, as defined in the initial spec.
 
-Note that for feature flags which are available in both the `node_announcement`
-and [BOLT 11](11-payment-encoding.md) invoice contexts, the features as set in
-the [BOLT 11](11-payment-encoding.md) invoice should override those set in the
-`node_announcement`. This keeps things consistent with the unknown features
-behavior as specified in [BOLT 7](07-routing-gossip.md#the-node_announcement-message).
+Note that for feature flags which are available in both the `node_announcement` and [BOLT 11](11-payment-encoding.md) invoice contexts, the features as set in the [BOLT 11](11-payment-encoding.md) invoice should override those set in the `node_announcement`. This keeps things consistent with the unknown features behavior as specified in [BOLT 7](07-routing-gossip.md#the-node_announcement-message).
 
-The origin must set all transitive feature dependencies in order to create a
-well-formed feature vector. By validating all known dependencies up front, this
-simplifies logic gated on a single feature bit; the feature's dependencies are
-known to be set, and do not need to be validated at every feature gate.
+The origin must set all transitive feature dependencies in order to create a well-formed feature vector. By validating all known dependencies up front, this simplifies logic gated on a single feature bit; the feature's dependencies are known to be set, and do not need to be validated at every feature gate.
 
 ![Creative Commons License](https://i.creativecommons.org/l/by/4.0/88x31.png "License CC-BY")
 <br>
