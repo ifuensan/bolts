@@ -1,14 +1,8 @@
 # BOLT #0: Introduction and Index
 
-Welcome, friend! These Basis of Lightning Technology (BOLT) documents
-describe a layer-2 protocol for off-chain bitcoin transfer by mutual
-cooperation, relying on on-chain transactions for enforcement if
-necessary.
+Welcome, friend! These Basis of Lightning Technology (BOLT) documents describe a layer-2 protocol for off-chain bitcoin transfer by mutual cooperation, relying on on-chain transactions for enforcement if necessary.
 
-Some requirements are subtle; we have tried to highlight motivations
-and reasoning behind the results you see here. I'm sure we've fallen
-short; if you find any part confusing or wrong, please contact us and
-help us improve.
+Some requirements are subtle; we have tried to highlight motivations and reasoning behind the results you see here. I'm sure we've fallen short; if you find any part confusing or wrong, please contact us and help us improve.
 
 This is version 0.
 
@@ -25,55 +19,36 @@ This is version 0.
 
 ## The Spark: A Short Introduction to Lightning
 
-Lightning is a protocol for making fast payments with Bitcoin using a
-network of channels.
+Lightning is a protocol for making fast payments with Bitcoin using a network of channels.
 
 ### Channels
 
-Lightning works by establishing *channels*: two participants create a
-Lightning payment channel that contains some amount of bitcoin (e.g.,
-0.1 bitcoin) that they've locked up on the Bitcoin network. It is
-spendable only with both their signatures.
+Lightning works by establishing *channels*: two participants create a Lightning payment channel that contains some amount of bitcoin (e.g.,
+0.1 bitcoin) that they've locked up on the Bitcoin network. It is spendable only with both their signatures.
 
-Initially they each hold a bitcoin transaction that sends all the
-bitcoin (e.g. 0.1 bitcoin) back to one party.  They can later sign a new bitcoin
-transaction that splits these funds differently, e.g. 0.09 bitcoin to one
-party, 0.01 bitcoin to the other, and invalidate the previous bitcoin
-transaction so it won't be spent.
+Initially they each hold a bitcoin transaction that sends all the bitcoin (e.g. 0.1 bitcoin) back to one party.  They can later sign a new bitcoin
+transaction that splits these funds differently, e.g. 0.09 bitcoin to one party, 0.01 bitcoin to the other, and invalidate the previous bitcointransaction so it won't be spent.
 
-See [BOLT #2: Channel Establishment](02-peer-protocol.md#channel-establishment) for more on
-channel establishment and [BOLT #3: Funding Transaction Output](03-transactions.md#funding-transaction-output) for the format of the bitcoin transaction that creates the channel.  See [BOLT #5: Recommendations for On-chain Transaction Handling](05-onchain.md) for the requirements when participants disagree or fail, and the cross-signed bitcoin transaction must be spent.
+See [BOLT #2: Channel Establishment](02-peer-protocol.md#channel-establishment) for more on channel establishment and [BOLT #3: Funding Transaction Output](03-transactions.md#funding-transaction-output) for the format of the bitcoin transaction that creates the channel.  See [BOLT #5: Recommendations for On-chain Transaction Handling](05-onchain.md) for the requirements when participants disagree or fail, and the cross-signed bitcoin transaction must be spent.
 
 ### Conditional Payments
 
-A Lightning channel only allows payment between two participants, but channels can be connected together to form a network that allows payments between all members of the network. This requires the technology of a conditional payment, which can be added to a channel,
-e.g. "you get 0.01 bitcoin if you reveal the secret within 6 hours".
-Once the recipient presents the secret, that bitcoin transaction is
-replaced with one lacking the conditional payment and adding the funds
-to that recipient's output.
+A Lightning channel only allows payment between two participants, but channels can be connected together to form a network that allows payments between all members of the network. This requires the technology of a conditional payment, which can be added to a channel, e.g. "you get 0.01 bitcoin if you reveal the secret within 6 hours".
+Once the recipient presents the secret, that bitcoin transaction is replaced with one lacking the conditional payment and adding the funds to that recipient's output.
 
-See [BOLT #2: Adding an HTLC](02-peer-protocol.md#adding-an-htlc-update_add_htlc) for the commands a participant uses to add a conditional payment, and [BOLT #3: Commitment Transaction](03-transactions.md#commitment-transaction) for the
-complete format of the bitcoin transaction.
+See [BOLT #2: Adding an HTLC](02-peer-protocol.md#adding-an-htlc-update_add_htlc) for the commands a participant uses to add a conditional payment, and [BOLT #3: Commitment Transaction](03-transactions.md#commitment-transaction) for the complete format of the bitcoin transaction.
 
 ### Forwarding
 
-Such a conditional payment can be safely forwarded to another
-participant with a lower time limit, e.g. "you get 0.01 bitcoin if you reveal the secret
-within 5 hours".  This allows channels to be chained into a network
-without trusting the intermediaries.
+Such a conditional payment can be safely forwarded to another participant with a lower time limit, e.g. "you get 0.01 bitcoin if you reveal the secret within 5 hours".  This allows channels to be chained into a network without trusting the intermediaries.
 
 See [BOLT #2: Forwarding HTLCs](02-peer-protocol.md#forwarding-htlcs) for details on forwarding payments, [BOLT #4: Packet Structure](04-onion-routing.md#packet-structure) for how payment instructions are transported.
 
 ### Network Topology
 
-To make a payment, a participant needs to know what channels it can
-send through.  Participants tell each other about channel and node
-creation, and updates.
+To make a payment, a participant needs to know what channels it can send through.  Participants tell each other about channel and node creation, and updates.
 
-See [BOLT #7: P2P Node and Channel Discovery](07-routing-gossip.md)
-for details on the communication protocol, and [BOLT #10: DNS
-Bootstrap and Assisted Node Location](10-dns-bootstrap.md) for initial
-network bootstrap.
+See [BOLT #7: P2P Node and Channel Discovery](07-routing-gossip.md) for details on the communication protocol, and [BOLT #10: DNS Bootstrap and Assisted Node Location](10-dns-bootstrap.md) for initial network bootstrap.
 
 ### Payment Invoicing
 
@@ -88,16 +63,12 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * A gossip message sent between *[peers](#peers)* intended to aid the discovery of a *[channel](#channel)* or a *[node](#node)*.
 
 * #### `chain_hash`:
-   * El hash de identificación único de la cadena de bloques de destino (generalmente el hash génesis).
-     Esto permite que *[nodos](#nodo)* creen y hagan referencia a *canales* en varias cadenas de bloques. Los nodos deben ignorar cualquier mensaje que haga referencia a un `chain_hash` que les sea desconocido. A diferencia de `bitcoin-cli`, el hash no se invierte sino que se usa directamente.
+   * El hash de identificación único de la cadena de bloques de destino (generalmente el hash génesis). Esto permite que *[nodos](#nodo)* creen y hagan referencia a *canales* en varias cadenas de bloques. Los nodos deben ignorar cualquier mensaje que haga referencia a un `chain_hash` que les sea desconocido. A diferencia de `bitcoin-cli`, el hash no se invierte sino que se usa directamente.
 
-     Para la cadena principal de la cadena de bloques de Bitcoin, el valor `chain_hash` DEBE ser
-     (codificado en hexadecimal):
-     `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000`.
+     Para la cadena principal de la cadena de bloques de Bitcoin, el valor `chain_hash` DEBE ser (codificado en hexadecimal): `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000`.
 
 * #### *Channel*:
-   * A fast, off-chain method of mutual exchange between two *[peers](#peers)*.
-   To transact funds, peers exchange signatures to create an updated *[commitment transaction](#commitment-transaction)*.
+   * A fast, off-chain method of mutual exchange between two *[peers](#peers)*. To transact funds, peers exchange signatures to create an updated *[commitment transaction](#commitment-transaction)*.
    * _See closure methods: [mutual close](#mutual-close), [revoked transaction close](#revoked-transaction-close), [unilateral close](#unilateral-close)_
    * _See related: [route](#route)_
 
@@ -106,42 +77,26 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * _See related: [commitment transaction](#commitment-transaction), [funding transaction](#funding-transaction), [penalty transaction](#penalty-transaction)_
 
 * #### *Commitment number*:
-   * A 48-bit incrementing counter for each *[commitment transaction](#commitment-transaction)*; counters
-    are independent for each *peer* in the *channel* and start at 0.
+   * A 48-bit incrementing counter for each *[commitment transaction](#commitment-transaction)*; counters are independent for each *peer* in the *channel* and start at 0.
    * _See container: [commitment transaction](#commitment-transaction)_
    * _See related: [closing transaction](#closing-transaction), [funding transaction](#funding-transaction), [penalty transaction](#penalty-transaction)_
 
 * #### *Commitment revocation private key*:
-   * Every *[commitment transaction](#commitment-transaction)* has a unique commitment revocation private-key
-    value that allows the other *peer* to spend all outputs
-    immediately: revealing this key is how old commitment
-    transactions are revoked. To support revocation, each output of the
-    commitment transaction refers to the commitment revocation public key.
+   * Every *[commitment transaction](#commitment-transaction)* has a unique commitment revocation private-key value that allows the other *peer* to spend all outputs immediately: revealing this key is how old commitment transactions are revoked. To support revocation, each output of the commitment transaction refers to the commitment revocation public key.
    * _See container: [commitment transaction](#commitment-transaction)_
    * _See originator: [per-commitment secret](#per-commitment-secret)_
 
 * #### *Commitment transaction*:
-   * A transaction that spends the *[funding transaction](#funding-transaction)*.
-   Each *peer* holds the other peer's signature for this transaction, so that each
-   always has a commitment transaction that it can spend. After a new
-   commitment transaction is negotiated, the old one is *revoked*.
+   * A transaction that spends the *[funding transaction](#funding-transaction)*. Each *peer* holds the other peer's signature for this transaction, so that each always has a commitment transaction that it can spend. After a new commitment transaction is negotiated, the old one is *revoked*.
    * _See parts: [commitment number](#commitment-number), [commitment revocation private key](#commitment-revocation-private-key), [HTLC](#HTLC-Hashed-Time-Locked-Contract), [per-commitment secret](#per-commitment-secret), [outpoint](#outpoint)_
    * _See related: [closing transaction](#closing-transaction), [funding transaction](#funding-transaction), [penalty transaction](#penalty-transaction)_
    * _See types: [revoked commitment transaction](#revoked-commitment-transaction)_
 
 * #### *Fail the channel*:
-  * This is a forced close of the channel. Very early on (before
-  opening), this may not require any action but forgetting the
-  existence of the channel.  Usually it requires signing and
-  broadcasting the latest commitment transaction, although during
-  mutual close it can also be performed by signing and broadcasting a
-  mutual close transaction.  See [BOLT #5](05-onchain.md#failing-a-channel).
+  * This is a forced close of the channel. Very early on (before opening), this may not require any action but forgetting the existence of the channel.  Usually it requires signing and broadcasting the latest commitment transaction, although during mutual close it can also be performed by signing and broadcasting a mutual close transaction.  See [BOLT #5](05-onchain.md#failing-a-channel).
 
 * #### *Close the connection*:
-  * This means closing communication with the peer (such as closing
-  the TCP socket).  It does not imply closing any channels with the
-  peer, but does cause the discarding of uncommitted state for
-  connections with channels: see [BOLT #2](02-peer-protocol.md#message-retransmission).
+  * This means closing communication with the peer (such as closing the TCP socket).  It does not imply closing any channels with the peer, but does cause the discarding of uncommitted state for connections with channels: see [BOLT #2](02-peer-protocol.md#message-retransmission).
 
 * #### *Final node*:
    * The final recipient of a packet that is routing a payment from an *[origin node](#origin-node)* through some number of *[hops](#hop)*. It is also the final *[receiving peer](#receiving-peer)* in a chain.
@@ -149,8 +104,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * _See related: [origin node](#origin-node), [processing node](#processing-node)_
 
 * #### *Funding transaction*:
-   * An irreversible on-chain transaction that pays to both *[peers](#peers)* on a *[channel](#channel)*.
-   It can only be spent by mutual consent.
+   * An irreversible on-chain transaction that pays to both *[peers](#peers)* on a *[channel](#channel)*. It can only be spent by mutual consent.
    * _See related: [closing transaction](#closing-transaction), [commitment transaction](#commitment-transaction), [penalty transaction](#penalty-transaction)_
 
 * #### *Hop*:
@@ -158,32 +112,22 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * _See category: [node](#node)_
 
 * #### *HTLC*: Hashed Time Locked Contract.
-   * A conditional payment between two *[peers](#peers)*: the recipient can spend
-    the payment by presenting its signature and a *payment preimage*,
-    otherwise the payer can cancel the contract by spending it after
-    a given time. These are implemented as outputs from the
-    *[commitment transaction](#commitment-transaction)*.
+   * A conditional payment between two *[peers](#peers)*: the recipient can spend the payment by presenting its signature and a *payment preimage*,
+    otherwise the payer can cancel the contract by spending it after a given time. These are implemented as outputs from the *[commitment transaction](#commitment-transaction)*.
    * _See container: [commitment transaction](#commitment-transaction)_
    * _See parts: [Payment hash](#Payment-hash), [Payment preimage](#Payment-preimage)_
 
 * #### *Invoice*: A request for funds on the Lightning Network, possibly
-    including payment type, payment amount, expiry, and other
-    information. This is how payments are made on the Lightning
-    Network, rather than using Bitcoin-style addresses.
+    including payment type, payment amount, expiry, and other information. This is how payments are made on the Lightning Network, rather than using Bitcoin-style addresses.
 
 * #### *It's ok to be odd*:
-   * A rule applied to some numeric fields that indicates either optional or
-     compulsory support for features. Even numbers indicate that both endpoints
-     MUST support the feature in question, while odd numbers indicate
-     that the feature MAY be disregarded by the other endpoint.
+   * A rule applied to some numeric fields that indicates either optional or compulsory support for features. Even numbers indicate that both endpoints MUST support the feature in question, while odd numbers indicate that the feature MAY be disregarded by the other endpoint.
 
 * #### *MSAT*:
    * A millisatoshi, often used as a field name.
 
 * #### *Mutual close*:
-   * A cooperative close of a *[channel](#channel)*, accomplished by broadcasting an unconditional
-    spend of the *[funding transaction](#funding-transaction)* with an output to each *peer*
-    (unless one output is too small, and thus is not included).
+   * A cooperative close of a *[channel](#channel)*, accomplished by broadcasting an unconditional spend of the *[funding transaction](#funding-transaction)* with an output to each *peer* (unless one output is too small, and thus is not included).
    * _See related: [revoked transaction close](#revoked-transaction-close), [unilateral close](#unilateral-close)_
 
 * #### *Node*:
@@ -201,17 +145,12 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
   * _See related: [funding transaction](#funding-transaction), [commitment transaction](#commitment-transaction)_
 
 * #### *Payment hash*:
-   * The *[HTLC](#HTLC-Hashed-Time-Locked-Contract)* contains the payment hash, which is the hash of the
-    *[payment preimage](#Payment-preimage)*.
+   * The *[HTLC](#HTLC-Hashed-Time-Locked-Contract)* contains the payment hash, which is the hash of the *[payment preimage](#Payment-preimage)*.
    * _See container: [HTLC](#HTLC-Hashed-Time-Locked-Contract)_
    * _See originator: [Payment preimage](#Payment-preimage)_
 
 * #### *Payment preimage*:
-   * Proof that payment has been received, held by
-    the final recipient, who is the only person who knows this
-    secret. The final recipient releases the preimage in order to
-    release funds. The payment preimage is hashed as the *[payment hash](#Payment-hash)*
-    in the *[HTLC](#HTLC-Hashed-Time-Locked-Contract)*.
+   * Proof that payment has been received, held by the final recipient, who is the only person who knows this secret. The final recipient releases the preimage in order to release funds. The payment preimage is hashed as the *[payment hash](#Payment-hash)* in the *[HTLC](#HTLC-Hashed-Time-Locked-Contract)*.
    * _See container: [HTLC](#HTLC-Hashed-Time-Locked-Contract)_
    * _See derivation: [payment hash](#Payment-hash)_
 
@@ -222,16 +161,11 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * _See related: [node](#node)_
 
 * #### *Penalty transaction*:
-   * A transaction that spends all outputs of a *[revoked commitment
-    transaction](#revoked-commitment-transaction)*, using the *commitment revocation private key*. A *[peer](#peers)* uses this
-    if the other peer tries to "cheat" by broadcasting a *[revoked commitment
-    transaction](#revoked-commitment-transaction)*.
+   * A transaction that spends all outputs of a *[revoked commitment transaction](#revoked-commitment-transaction)*, using the *commitment revocation private key*. A *[peer](#peers)* uses this if the other peer tries to "cheat" by broadcasting a *[revoked commitment transaction](#revoked-commitment-transaction)*.
    * _See related: [closing transaction](#closing-transaction), [commitment transaction](#commitment-transaction), [funding transaction](#funding-transaction)_
 
 * #### *Per-commitment secret*:
-   * Every *[commitment transaction](#commitment-transaction)* derives its keys from a per-commitment secret,
-     which is generated such that the series of per-commitment secrets
-     for all previous commitments can be stored compactly.
+   * Every *[commitment transaction](#commitment-transaction)* derives its keys from a per-commitment secret, which is generated such that the series of per-commitment secrets for all previous commitments can be stored compactly.
    * _See container: [commitment transaction](#commitment-transaction)_
    * _See derivation: [commitment revocation private key](#commitment-revocation-private-key)_
 
@@ -255,15 +189,11 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * _See category: [commitment transaction](#commitment-transaction)_
 
 * #### *Revoked transaction close*:
-   * An invalid close of a *[channel](#channel)*, accomplished by broadcasting a *revoked
-    commitment transaction*. Since the other *peer* knows the
-    *commitment revocation secret key*, it can create a *[penalty transaction](#penalty-transaction)*.
+   * An invalid close of a *[channel](#channel)*, accomplished by broadcasting a *revoked commitment transaction*. Since the other *peer* knows the *commitment revocation secret key*, it can create a *[penalty transaction](#penalty-transaction)*.
    * _See related: [mutual close](#mutual-close), [unilateral close](#unilateral-close)_
 
 * #### *Route*: 
-  * A path across the Lightning Network that enables a payment
-    from an *origin node* to a *[final node](#final-node)* across one or more
-    *[hops](#hop)*.
+  * A path across the Lightning Network that enables a payment from an *origin node* to a *[final node](#final-node)* across one or more *[hops](#hop)*.
   * _See related: [channel](#channel)_
 
 * #### *Sending node*:
@@ -277,11 +207,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
    * _See related: [receiving peer](#receiving-peer)_.
 
 * #### *Unilateral close*:
-   * An uncooperative close of a *[channel](#channel)*, accomplished by broadcasting a
-    *[commitment transaction](#commitment-transaction)*. This transaction is larger (i.e. less
-    efficient) than a *[closing transaction](#closing-transaction)*, and the *[peer](#peers)* whose
-    commitment is broadcast cannot access its own outputs for some
-    previously-negotiated duration.
+   * An uncooperative close of a *[channel](#channel)*, accomplished by broadcasting a *[commitment transaction](#commitment-transaction)*. This transaction is larger (i.e. less efficient) than a *[closing transaction](#closing-transaction)*, and the *[peer](#peers)* whose commitment is broadcast cannot access its own outputs for some previously-negotiated duration.
    * _See related: [mutual close](#mutual-close), [revoked transaction close](#revoked-transaction-close)_
 
 ## Theme Song
@@ -329,7 +255,7 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
 
 
       C'mon guys, let's get to work!
-
+https://youtu.be/edItjMHez48
 
    -- Anthony Towns <aj@erisian.com.au>
 

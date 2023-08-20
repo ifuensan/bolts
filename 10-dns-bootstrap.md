@@ -1,4 +1,4 @@
-# BOLT #10: DNS Bootstrap y Ubicación asistida de Nodos
+# BOLT #10: DNS Bootstrap y Ubicación Asistida de Nodos
 
 ## Visión general
 
@@ -6,7 +6,7 @@ Esta especificación describe un mecanismo de descubrimiento de nodos basado en 
 Su finalidad es doble:
 
  - Bootstrap: proporciona el descubrimiento de nodo inicial para nodos que no tienen contactos conocidos en la red
- - Ubicación de nodo asistida: nodos de apoyo en el descubrimiento de la dirección de red actual de pares previamente conocidos
+ - Ubicación Asistida de Nodos: nodos de apoyo en el descubrimiento de la dirección de red actual de pares previamente conocidos
 
 Un servidor de nombres de dominio que implementa esta especificación se denomina _DNS Seed_ y responde a las consultas DNS entrantes de tipo `A`, `AAAA` o `SRV`, como se especifica en RFC 1035<sup>[1](#ref-1 )</sup>, 3596<sup>[2](#ref-2)</sup> y 2782<sup>[3](#ref-3)</sup>, respectivamente.
 El servidor DNS tiene autoridad para un subdominio, denominado _dominio raíz inicial_, y los clientes pueden consultarlo en busca de subdominios.
@@ -15,7 +15,7 @@ Los subdominios constan de una serie de _condiciones_ separadas por puntos que l
 
 ## Índice
 
-- [BOLT #10: DNS Bootstrap y Ubicación asistida de Nodos](#bolt-10-dns-bootstrap-y-ubicación-asistida-de-nodos)
+- [BOLT #10: DNS Bootstrap y Ubicación Asistida de Nodos](#bolt-10-dns-bootstrap-y-ubicación-asistida-de-nodos)
   - [Visión general](#visión-general)
   - [Índice](#índice)
   - [Consultas de semillas de DNS](#consultas-de-semillas-de-dns)
