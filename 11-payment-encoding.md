@@ -1,20 +1,32 @@
-# BOLT #11: Invoice Protocol for Lightning Payments
+# BOLT #11: Invoice Procotol para Pagos en Lightning
 
 A simple, extendable, QR-code-ready protocol for requesting payments
 over Lightning.
 
 # Table of Contents
 
-  * [Encoding Overview](#encoding-overview)
-  * [Human-Readable Part](#human-readable-part)
-  * [Data Part](#data-part)
-    * [Tagged Fields](#tagged-fields)
-    * [Feature Bits](#feature-bits)
-  * [Payer / Payee Interactions](#payer--payee-interactions)
-    * [Payer / Payee Requirements](#payer--payee-requirements)
-  * [Implementation](#implementation)
-  * [Examples](#examples)
-  * [Authors](#authors)
+- [BOLT #11: Invoice Procotol para Pagos en Lightning](#bolt-11-invoice-procotol-para-pagos-en-lightning)
+- [Table of Contents](#table-of-contents)
+- [Encoding Overview](#encoding-overview)
+  - [Requirements](#requirements)
+- [Human-Readable Part](#human-readable-part)
+  - [Requirements](#requirements-1)
+  - [Rationale](#rationale)
+- [Data Part](#data-part)
+  - [Requirements](#requirements-2)
+  - [Rationale](#rationale-1)
+  - [Tagged Fields](#tagged-fields)
+    - [Requirements](#requirements-3)
+    - [Rationale](#rationale-2)
+    - [Security Considerations for Payment Descriptions](#security-considerations-for-payment-descriptions)
+  - [Feature Bits](#feature-bits)
+    - [Requirements](#requirements-4)
+- [Payer / Payee Interactions](#payer--payee-interactions)
+  - [Payer / Payee Requirements](#payer--payee-requirements)
+- [Implementation](#implementation)
+- [Examples](#examples)
+- [Examples of Invalid Invoices](#examples-of-invalid-invoices)
+- [Authors](#authors)
 
 # Encoding Overview
 

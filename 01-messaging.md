@@ -1,5 +1,5 @@
 <!-- omit in toc -->
-# BOLT #1: Base Protocol
+# BOLT #1: Protocolo Base
 
 <!-- omit in toc -->
 ## Overview

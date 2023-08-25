@@ -1,10 +1,10 @@
-# BOLT #3: Bitcoin Transaction and Script Formats
+# BOLT #3: Formatos de Transacciones y Scripts de Bitcoin
 
 This details the exact format of on-chain transactions, which both sides need to agree on to ensure signatures are valid. This consists of the funding transaction output script, the commitment transactions, and the HTLC transactions.
 
 # Table of Contents
 
-- [BOLT #3: Bitcoin Transaction and Script Formats](#bolt-3-bitcoin-transaction-and-script-formats)
+- [BOLT #3: Formatos de Transacciones y Scripts de Bitcoin](#bolt-3-formatos-de-transacciones-y-scripts-de-bitcoin)
 - [Table of Contents](#table-of-contents)
 - [Transactions](#transactions)
   - [Transaction Output Ordering](#transaction-output-ordering)

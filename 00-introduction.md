@@ -1,216 +1,214 @@
 # BOLT #0: Introduction and Index
 
-Welcome, friend! These Basis of Lightning Technology (BOLT) documents describe a layer-2 protocol for off-chain bitcoin transfer by mutual cooperation, relying on on-chain transactions for enforcement if necessary.
+¡Bienvenido, amigo! Estos documentos de `Basis of Lightning Technology` (BOLT) describen un protocolo de capa 2 para la transferencia de Bitcoin fuera de la cadena (`off-chain`) mediante cooperación mutua, confiando en transacciones en la cadena (`on-chain`) para la aplicación si es necesario.
 
-Some requirements are subtle; we have tried to highlight motivations and reasoning behind the results you see here. I'm sure we've fallen short; if you find any part confusing or wrong, please contact us and help us improve.
+Algunos requisitos son sutiles; hemos tratado de resaltar las motivaciones y el razonamiento detrás de los resultados que ves aquí. Seguramente nos hemos quedado cortos; si encuentras alguna parte confusa o incorrecta, por favor contáctanos y ayúdanos a mejorar.
 
-This is version 0.
+Esta es la traducción de la versión 0.
 
-1. [BOLT #1](01-messaging.md): Base Protocol
-2. [BOLT #2](02-peer-protocol.md): Peer Protocol for Channel Management
-3. [BOLT #3](03-transactions.md): Bitcoin Transaction and Script Formats
-4. [BOLT #4](04-onion-routing.md): Onion Routing Protocol
-5. [BOLT #5](05-onchain.md): Recommendations for On-chain Transaction Handling
-7. [BOLT #7](07-routing-gossip.md): P2P Node and Channel Discovery
-8. [BOLT #8](08-transport.md): Encrypted and Authenticated Transport
-9. [BOLT #9](09-features.md): Assigned Feature Flags
-10. [BOLT #10](10-dns-bootstrap.md): DNS Bootstrap and Assisted Node Location
+1. [BOLT #1](01-messaging.md): Protocolo Base
+2. [BOLT #2](02-peer-protocol.md): Protocolo de pares para la gestión de canales
+3. [BOLT #3](03-transactions.md): Formatos de Transacciones y Scripts de Bitcoin
+4. [BOLT #4](04-onion-routing.md): Protocolo Onion Routing
+5. [BOLT #5](05-onchain.md): Recomendaciones para Manejar las transacciones On-chain
+7. [BOLT #7](07-routing-gossip.md): Descubrimiento de canales y nodos P2P
+8. [BOLT #8](08-transport.md): Transporte cifrado y autenticado
+9. [BOLT #9](09-features.md): Feature Flags Asignados
+10. [BOLT #10](10-dns-bootstrap.md): DNS Bootstrap y Ubicación Asistida de Nodos
 11. [BOLT #11](11-payment-encoding.md): Invoice Protocol for Lightning Payments
 
-## The Spark: A Short Introduction to Lightning
+## La Chispa: Una Breve Introducción a Lightning
 
-Lightning is a protocol for making fast payments with Bitcoin using a network of channels.
+Lightning es un protocolo para realizar pagos rápidos con Bitcoin utilizando una red de canales.
 
-### Channels
+### Canales
 
-Lightning works by establishing *channels*: two participants create a Lightning payment channel that contains some amount of bitcoin (e.g.,
-0.1 bitcoin) that they've locked up on the Bitcoin network. It is spendable only with both their signatures.
+Lightning funciona estableciendo canales: dos participantes crean un canal de pago en Lightning que contiene una cierta cantidad de bitcoin (por ejemplo, 0.1 bitcoin) que han bloqueado en la red de Bitcoin. Solo es gastable con las firmas de ambos.
 
-Initially they each hold a bitcoin transaction that sends all the bitcoin (e.g. 0.1 bitcoin) back to one party.  They can later sign a new bitcoin
-transaction that splits these funds differently, e.g. 0.09 bitcoin to one party, 0.01 bitcoin to the other, and invalidate the previous bitcointransaction so it won't be spent.
+Inicialmente, cada uno de ellos tiene una transacción de bitcoin que envía todos los bitcoins (por ejemplo, 0.1 bitcoin) de vuelta a una de las partes. Más adelante, pueden firmar una nueva transacción de bitcoin que distribuye estos fondos de manera diferente, por ejemplo, 0.09 bitcoin para una parte y 0.01 bitcoin para la otra, e invalidar la transacción de bitcoin anterior para que no se gaste.
 
-See [BOLT #2: Channel Establishment](02-peer-protocol.md#channel-establishment) for more on channel establishment and [BOLT #3: Funding Transaction Output](03-transactions.md#funding-transaction-output) for the format of the bitcoin transaction that creates the channel.  See [BOLT #5: Recommendations for On-chain Transaction Handling](05-onchain.md) for the requirements when participants disagree or fail, and the cross-signed bitcoin transaction must be spent.
+Consulta [BOLT #2: Establecimiento de Canales](02-peer-protocol.md#channel-establishment) para obtener más información sobre el establecimiento de canales y [BOLT #3: Salida de la Transacción de Financiamiento](03-transactions.md#funding-transaction-output) para conocer el formato de la transacción de bitcoin que crea el canal. Consulta [BOLT #5: Recomendaciones para el Manejo de Transacciones](05-onchain.md) para conocer los requisitos cuando los participantes no están de acuerdo o fallan, y la transacción de bitcoin con firmas cruzadas debe ser gastada.
 
-### Conditional Payments
+### Pagos condicionales
 
 A Lightning channel only allows payment between two participants, but channels can be connected together to form a network that allows payments between all members of the network. This requires the technology of a conditional payment, which can be added to a channel, e.g. "you get 0.01 bitcoin if you reveal the secret within 6 hours".
 Once the recipient presents the secret, that bitcoin transaction is replaced with one lacking the conditional payment and adding the funds to that recipient's output.
 
 See [BOLT #2: Adding an HTLC](02-peer-protocol.md#adding-an-htlc-update_add_htlc) for the commands a participant uses to add a conditional payment, and [BOLT #3: Commitment Transaction](03-transactions.md#commitment-transaction) for the complete format of the bitcoin transaction.
 
-### Forwarding
 
-Such a conditional payment can be safely forwarded to another participant with a lower time limit, e.g. "you get 0.01 bitcoin if you reveal the secret within 5 hours".  This allows channels to be chained into a network without trusting the intermediaries.
+Un canal Lightning solo permite pagos entre dos participantes, pero los canales se pueden conectar entre sí para formar una red que permite pagos entre todos los miembros de la red. Esto requiere la tecnología de un pago condicional, que se puede agregar a un canal, por ejemplo "obtienes 0,01 bitcoin si revelas el secreto dentro de las 6 horas". Una vez que el destinatario presenta el secreto, esa transacción de bitcoin se reemplaza por una que carece del pago condicional y se agregan los fondos a la salida de ese destinatario.
 
-See [BOLT #2: Forwarding HTLCs](02-peer-protocol.md#forwarding-htlcs) for details on forwarding payments, [BOLT #4: Packet Structure](04-onion-routing.md#packet-structure) for how payment instructions are transported.
+Consulte el [BOLT #2: Agregar un HTLC](02-peer-protocol.md#adding-an-htlc-update_add_htlc) para conocer los comandos que usa un participante para agregar un pago condicional, y el [BOLT #3: Commitment Transaction o `Transacción de compromiso`](03-transactions.md#commitment-transaction) para conocer el formato completo de la transacción bitcoin.
 
-### Network Topology
+### Reenvío
+Un pago condicional de este tipo se puede enviar de forma segura a otro participante con un límite de tiempo más bajo, por ejemplo "obtienes 0,01 bitcoin si revelas el secreto dentro de las 5 horas". Esto permite encadenar canales en una red sin confiar en los intermediarios.
 
-To make a payment, a participant needs to know what channels it can send through.  Participants tell each other about channel and node creation, and updates.
+Consulte [BOLT #2: Reenvío de HTLCs](02-peer-protocol.md#forwarding-htlcs) para obtener detalles sobre el reenvío de pagos, [BOLT #4: Estructura de paquetes](04-onion-routing.md#packet-structure) para saber cómo se transportan las instrucciones de pago.
 
-See [BOLT #7: P2P Node and Channel Discovery](07-routing-gossip.md) for details on the communication protocol, and [BOLT #10: DNS Bootstrap and Assisted Node Location](10-dns-bootstrap.md) for initial network bootstrap.
+### Topología de la red
+Para realizar un pago, un participante necesita saber a través de qué canales puede enviar. Los participantes se cuentan entre sí sobre la creación y las actualizaciones de canales y nodos.
 
-### Payment Invoicing
+Consulte el [BOLT #7: Descubrimiento de canales y nodos P2P](07-routing-gossip.md) para obtener detalles sobre el protocolo de comunicación, y el [BOLT #10: Arranque DNS y ubicación asistida de nodo](10-dns-bootstrap.md) para el arranque inicial de la red.
 
-A participant receives invoices that tell them what payments to make.
+### Facturación de Pagos
 
-See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) for the protocol describing the destination and purpose of a payment such that the payer can later prove successful payment.
+Un participante recibe facturas que le indican qué pagos realizar.
 
+Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encoding.md) para conocer el protocolo que describe el destino y el propósito de un pago, de modo que el pagador pueda demostrar posteriormente que el pago fue exitoso.
 
-## Glossary and Terminology Guide
+## Glosario y guía de la terminología
 
-* #### *Announcement*:
-   * A gossip message sent between *[peers](#peers)* intended to aid the discovery of a *[channel](#channel)* or a *[node](#node)*.
+* #### *Anuncio*:
+   * Un mensaje de chisme enviado entre *[peers](#peers)* destinado a ayudar al descubrimiento de un *[channel](#channel)* o un *[node](#node)*.
 
 * #### `chain_hash`:
    * El hash de identificación único de la cadena de bloques de destino (generalmente el hash génesis). Esto permite que *[nodos](#nodo)* creen y hagan referencia a *canales* en varias cadenas de bloques. Los nodos deben ignorar cualquier mensaje que haga referencia a un `chain_hash` que les sea desconocido. A diferencia de `bitcoin-cli`, el hash no se invierte sino que se usa directamente.
 
      Para la cadena principal de la cadena de bloques de Bitcoin, el valor `chain_hash` DEBE ser (codificado en hexadecimal): `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000`.
 
-* #### *Channel*:
-   * A fast, off-chain method of mutual exchange between two *[peers](#peers)*. To transact funds, peers exchange signatures to create an updated *[commitment transaction](#commitment-transaction)*.
-   * _See closure methods: [mutual close](#mutual-close), [revoked transaction close](#revoked-transaction-close), [unilateral close](#unilateral-close)_
-   * _See related: [route](#route)_
+* #### *Canal*: 
+    * Un método rápido, fuera de la cadena, de intercambio mutuo entre dos *[pares](#peers)*. Para realizar transacciones de fondos, los pares intercambian firmas para crear una *[transacción de compromiso](#transacción-compromiso)* actualizada. 
+    * _Ver métodos de cierre: [cierre mutuo](#cierre-mutuo), [cierre de transacción revocada](#cierre-de-transacción-revocada), [cierre unilateral](#cierre-unilateral)_ 
+    * _Ver relacionado: [ruta](#ruta)_
+    * 
+* #### *Cierre de transacción*: 
+    * Una transacción generada como parte de un *[cierre mutuo](#cierre mutuo)*. Una transacción de cierre es similar a una _transacción de compromiso_, pero sin pagos pendientes. 
+    * _Ver relacionado: [transacción de compromiso](#transacción-compromiso), [transacción de financiación](#transacción-de financiación), [transacción de penalización](#transacción-penalización)_
 
-* #### *Closing transaction*:
-   * A transaction generated as part of a *[mutual close](#mutual-close)*. A closing transaction is similar to a _commitment transaction_, but with no pending payments.
-   * _See related: [commitment transaction](#commitment-transaction), [funding transaction](#funding-transaction), [penalty transaction](#penalty-transaction)_
+* #### *Número de compromiso*: 
+    * Un contador incremental de 48 bits para cada *[transacción de compromiso](#transacción-compromiso)*; Los contadores son independientes para cada *par* en el *canal* y comienzan en 0. 
+    * _Ver contenedor: [transacción de compromiso](#transacción-compromiso)_ 
+    * _Ver relacionado: [transacción de cierre](#transacción-de-cierre), [transacción de financiación](#transacción-de-financiación), [transacción de penalización](#transacción-de-penalización)_
 
-* #### *Commitment number*:
-   * A 48-bit incrementing counter for each *[commitment transaction](#commitment-transaction)*; counters are independent for each *peer* in the *channel* and start at 0.
-   * _See container: [commitment transaction](#commitment-transaction)_
-   * _See related: [closing transaction](#closing-transaction), [funding transaction](#funding-transaction), [penalty transaction](#penalty-transaction)_
+* #### *Clave privada de revocación de compromiso*: 
+    * Cada *[transacción de compromiso](#transacción-compromiso)* tiene un valor de clave privada de revocación de compromiso único que permite al otro *par* gastar todos los resultados inmediatamente: revelar esta clave es cómo se revocan las transacciones de compromiso antiguas. Para admitir la revocación, cada resultado de la transacción de compromiso hace referencia a la clave pública de revocación del compromiso. 
+    * _Ver contenedor: [transacción de compromiso](#transacción-compromiso)_ 
+    * _Ver autor: [secreto por compromiso](#secreto-por-compromiso)_
 
-* #### *Commitment revocation private key*:
-   * Every *[commitment transaction](#commitment-transaction)* has a unique commitment revocation private-key value that allows the other *peer* to spend all outputs immediately: revealing this key is how old commitment transactions are revoked. To support revocation, each output of the commitment transaction refers to the commitment revocation public key.
-   * _See container: [commitment transaction](#commitment-transaction)_
-   * _See originator: [per-commitment secret](#per-commitment-secret)_
+* #### *Transacción de compromiso*: 
+    * Una transacción que gasta la *[transacción de financiación](#transacción-de-financiación)*. Cada *par* tiene la firma del otro par para esta transacción, de modo que cada uno siempre tiene una transacción de compromiso que puede gastar. Después de negociar una nueva transacción de compromiso, la anterior se *revoca*. 
+    * _Ver partes: [número de compromiso](#número-compromiso), [clave privada de revocación de compromiso](#clave-privada-de-revocación-compromiso), [HTLC](#HTLC-Hashed-Time-Locked-Contract), [por -secreto de compromiso](#por-secreto-de-compromiso), [punto de salida](#punto de salida)_ 
+    * _Ver relacionado: [transacción de cierre](#transacción-de-cierre), [transacción de financiación](#transacción-de-financiación), [transacción de penalización](#transacción-de-penalización)_ 
+    * _Ver tipos: [transacción de compromiso revocado](#transacción-de-compromiso-revocado)_
 
-* #### *Commitment transaction*:
-   * A transaction that spends the *[funding transaction](#funding-transaction)*. Each *peer* holds the other peer's signature for this transaction, so that each always has a commitment transaction that it can spend. After a new commitment transaction is negotiated, the old one is *revoked*.
-   * _See parts: [commitment number](#commitment-number), [commitment revocation private key](#commitment-revocation-private-key), [HTLC](#HTLC-Hashed-Time-Locked-Contract), [per-commitment secret](#per-commitment-secret), [outpoint](#outpoint)_
-   * _See related: [closing transaction](#closing-transaction), [funding transaction](#funding-transaction), [penalty transaction](#penalty-transaction)_
-   * _See types: [revoked commitment transaction](#revoked-commitment-transaction)_
+* #### *Fallo el canal*: 
+   *Este es un cierre forzoso del canal. Muy pronto (antes de abrir), esto puede no requerir ninguna acción más que olvidar la existencia del canal. Por lo general, requiere firmar y transmitir la última transacción de compromiso, aunque durante el cierre mutuo también se puede realizar firmando y transmitiendo una transacción de cierre mutuo. Consulte [BOLT #5](05-onchain.md#failing-a-channel)..
 
-* #### *Fail the channel*:
-  * This is a forced close of the channel. Very early on (before opening), this may not require any action but forgetting the existence of the channel.  Usually it requires signing and broadcasting the latest commitment transaction, although during mutual close it can also be performed by signing and broadcasting a mutual close transaction.  See [BOLT #5](05-onchain.md#failing-a-channel).
+* #### *Cerrar la conexión*: 
+   * Esto significa cerrar la comunicación con el par (como cerrar el socket TCP). No implica cerrar ningún canal con el par, pero sí provoca el descarte del estado no comprometido para conexiones con canales: consulte [BOLT #2](02-peer-protocol.md#message-retransmission).
 
-* #### *Close the connection*:
-  * This means closing communication with the peer (such as closing the TCP socket).  It does not imply closing any channels with the peer, but does cause the discarding of uncommitted state for connections with channels: see [BOLT #2](02-peer-protocol.md#message-retransmission).
+* #### *Nodo final*: 
+    * El destinatario final de un paquete que enruta un pago desde un *[nodo de origen](#nodo-de origen)* a través de algún número de *[saltos](#salto)*. También es el *[par receptor](#par-receptor)* final de una cadena. 
+    * _Ver categoría: [nodo](#nodo)_ 
+    * _Ver relacionado: [nodo de origen](#nodo-de-origen), [nodo de procesamiento](#nodo-de-procesamiento)_
 
-* #### *Final node*:
-   * The final recipient of a packet that is routing a payment from an *[origin node](#origin-node)* through some number of *[hops](#hop)*. It is also the final *[receiving peer](#receiving-peer)* in a chain.
-   * _See category: [node](#node)_
-   * _See related: [origin node](#origin-node), [processing node](#processing-node)_
+* #### *Transacción de financiación*: 
+    * Una transacción irreversible en cadena que paga a ambos *[peers](#peers)* en un *[channel](#channel)*. Sólo puede gastarse de mutuo acuerdo. 
+    * _Ver relacionado: [transacción de cierre](#transacción-de-cierre), [transacción de compromiso](#transacción-de-compromiso), [transacción-de-penalización](#transacción-de-penalización)_
 
-* #### *Funding transaction*:
-   * An irreversible on-chain transaction that pays to both *[peers](#peers)* on a *[channel](#channel)*. It can only be spent by mutual consent.
-   * _See related: [closing transaction](#closing-transaction), [commitment transaction](#commitment-transaction), [penalty transaction](#penalty-transaction)_
+* #### *Salto `Hop`*: 
+    * Un *[nodo](#nodo)*. Generalmente, un nodo intermedio que se encuentra entre un *[nodo de origen](#nodo-de-origen)* y un *[nodo final](#nodo-final)*. 
+    * _Ver categoría: [nodo](#nodo)_
 
-* #### *Hop*:
-   * A *[node](#node)*. Generally, an intermediate node lying between an *[origin node](#origin-node)* and a *[final node](#final-node)*.
-   * _See category: [node](#node)_
+* #### *HTLC*: Contrato bloqueado por hash de tiempo. 
+    * Un pago condicional entre dos *[peers](#peers)*: el destinatario puede gastar el pago presentando su firma y una *preimagen de pago*, de lo contrario, el pagador puede cancelar el contrato gastándolo después de un tiempo determinado. Estos se implementan como resultados de la *[transacción de compromiso](#transacción-compromiso)*. 
+    * _Ver contenedor: [transacción de compromiso](#transacción-compromiso)_ 
+    * _Ver partes: [Hash de pago](#Hash-de-pago), [Preimagen de pago](#Preimagen-de-pago)_
 
-* #### *HTLC*: Hashed Time Locked Contract.
-   * A conditional payment between two *[peers](#peers)*: the recipient can spend the payment by presenting its signature and a *payment preimage*,
-    otherwise the payer can cancel the contract by spending it after a given time. These are implemented as outputs from the *[commitment transaction](#commitment-transaction)*.
-   * _See container: [commitment transaction](#commitment-transaction)_
-   * _See parts: [Payment hash](#Payment-hash), [Payment preimage](#Payment-preimage)_
+* #### *Factura*: Una solicitud de fondos en Lightning Network, posiblemente 
+     incluido el tipo de pago, el monto del pago, el vencimiento y otra información. Así es como se realizan los pagos en Lightning Network, en lugar de utilizar direcciones estilo Bitcoin. 
 
-* #### *Invoice*: A request for funds on the Lightning Network, possibly
-    including payment type, payment amount, expiry, and other information. This is how payments are made on the Lightning Network, rather than using Bitcoin-style addresses.
+ * #### *Está bien ser raro*: //It's ok to be odd
+    * Una regla aplicada a algunos campos numéricos que indica compatibilidad opcional u obligatoria para funciones. Los números pares indican que ambos puntos finales DEBEN admitir la característica en cuestión, mientras que los números impares indican que el otro punto final PUEDE ignorar la característica. 
 
-* #### *It's ok to be odd*:
-   * A rule applied to some numeric fields that indicates either optional or compulsory support for features. Even numbers indicate that both endpoints MUST support the feature in question, while odd numbers indicate that the feature MAY be disregarded by the other endpoint.
+ * #### *MSAT*: 
+    * Un milisatoshi, utilizado a menudo como nombre de campo.
 
-* #### *MSAT*:
-   * A millisatoshi, often used as a field name.
+* #### *Cierre mutuo*: 
+    * Un cierre cooperativo de un *[canal](#canal)*, logrado mediante la transmisión de un gasto incondicional de la *[transacción de financiación](#transacción-de-financiación)* con una salida para cada *par* (a menos que una salida sea demasiado pequeño y por lo tanto no está incluido). 
+    * _Ver relacionado: [cierre de transacción revocada](#cierre-de-transacción-revocada), [cierre unilateral](#cierre-unilateral)_
 
-* #### *Mutual close*:
-   * A cooperative close of a *[channel](#channel)*, accomplished by broadcasting an unconditional spend of the *[funding transaction](#funding-transaction)* with an output to each *peer* (unless one output is too small, and thus is not included).
-   * _See related: [revoked transaction close](#revoked-transaction-close), [unilateral close](#unilateral-close)_
+* #### *Nodo*: 
+    * Una computadora u otro dispositivo que sea parte de la red Lightning. 
+    * _Ver relacionado: [peers](#peers)_ 
+    * _Ver tipos: [nodo final](#nodo-final), [salto](#salto), [nodo origen](#nodo-origen), [nodo procesamiento](#nodo-procesamiento), [nodo receptor]( #nodo-receptor), [nodo-enviador](#nodo-enviador)_
+* #### *Nodo de origen*: 
+    * El *[nodo](#nodo)* que origina un paquete que enrutará un pago a través de una cierta cantidad de [saltos](#salto) a un *[nodo final](#nodo-final)*. También es el primer [par emisor](#par-enviador) de una cadena. 
+    * _Ver categoría: [nodo](#nodo)_ 
+    * _Ver relacionado: [nodo final](#nodo-final), [nodo de procesamiento](#nodo-de-procesamiento)_
 
-* #### *Node*:
-   * A computer or other device that is part of the Lightning network.
-   * _See related: [peers](#peers)_
-   * _See types: [final node](#final-node), [hop](#hop), [origin node](#origin-node), [processing node](#processing-node), [receiving node](#receiving-node), [sending node](#sending-node)_
+* #### *Punto de salida*: //Outpoint
+   * Un hash de transacción y un índice de salida que identifican de forma única una salida de transacción no gastada. Necesario para componer una nueva transacción, como entrada. 
+   * _Ver relacionado: [transacción de financiación](#transacción-de-financiación), [transacción de compromiso](#transacción-de-compromiso)_
 
-* #### *Origin node*:
-   * The *[node](#node)* that originates a packet that will route a payment through some number of [hops](#hop) to a *[final node](#final-node)*. It is also the first [sending peer](#sending-peer) in a chain.
-   * _See category: [node](#node)_
-   * _See related: [final node](#final-node), [processing node](#processing-node)_
+* #### *Hash de pago*: 
+    * El *[HTLC](#HTLC-Hashed-Time-Locked-Contract)* contiene el hash de pago, que es el hash de la *[preimagen de pago](#Payment-preimage)*. 
+    * _Ver contenedor: [HTLC](#HTLC-Hashed-Time-Locked-Contract)_ 
+    * _Ver autor: [Preimagen de pago](#Pago-preimagen)_
 
-* #### *Outpoint*:
-  * A transaction hash and output index that uniquely identify an unspent transaction output. Needed to compose a new transaction, as an input.
-  * _See related: [funding transaction](#funding-transaction), [commitment transaction](#commitment-transaction)_
+* #### *Preimagen de pago*: 
+    * Comprobante de recepción del pago, en poder del destinatario final, que es la única persona que conoce este secreto. El destinatario final libera la preimagen para liberar fondos. La preimagen de pago tiene un hash como *[hash de pago](#Payment-hash)* en el *[HTLC](#HTLC-Hashed-Time-Locked-Contract)*. 
+    * _Ver contenedor: [HTLC](#HTLC-Hashed-Time-Locked-Contract)_ 
+    * _Ver derivación: [hash de pago](#Payment-hash)_
 
-* #### *Payment hash*:
-   * The *[HTLC](#HTLC-Hashed-Time-Locked-Contract)* contains the payment hash, which is the hash of the *[payment preimage](#Payment-preimage)*.
-   * _See container: [HTLC](#HTLC-Hashed-Time-Locked-Contract)_
-   * _See originator: [Payment preimage](#Payment-preimage)_
+* #### *Pares*: 
+    * Dos *[nodos](#nodo)* que están en comunicación entre sí. 
+       * Dos compañeros pueden cotillear entre sí antes de configurar un canal. 
+       * Dos pares pueden establecer un *[canal](#canal)* a través del cual realizan transacciones. 
+    * _Ver relacionado: [nodo](#nodo)_
 
-* #### *Payment preimage*:
-   * Proof that payment has been received, held by the final recipient, who is the only person who knows this secret. The final recipient releases the preimage in order to release funds. The payment preimage is hashed as the *[payment hash](#Payment-hash)* in the *[HTLC](#HTLC-Hashed-Time-Locked-Contract)*.
-   * _See container: [HTLC](#HTLC-Hashed-Time-Locked-Contract)_
-   * _See derivation: [payment hash](#Payment-hash)_
+* #### *Transacción de penalización*: 
+    * Una transacción que gasta todos los resultados de una *[transacción de compromiso revocado](#transacción-de-compromiso-revocado)*, utilizando la *clave privada de revocación de compromiso*. Un *[peer](#peers)* usa esto si el otro par intenta "hacer trampa" transmitiendo una *[transacción de compromiso revocado](#revoked-commitment-transaction)*. 
+    * _Ver relacionado: [transacción de cierre](#transacción-de-cierre), [transacción de compromiso](#transacción-de-compromiso), [transacción-de-financiación](#transacción-de-financiación)_
 
-* #### *Peers*:
-   * Two *[nodes](#node)* that are in communication with each other.
-      * Two peers may gossip with each other prior to setting up a channel.
-      * Two peers may establish a *[channel](#channel)* through which they transact.
-   * _See related: [node](#node)_
+* #### *Secreto por compromiso*: //Per-commitment Secret
+    * Cada *[transacción de compromiso](#transacción-compromiso)* deriva sus claves de un secreto por compromiso, que se genera de manera que la serie de secretos por compromiso para todos los compromisos anteriores se pueda almacenar de forma compacta. 
+    * _Ver contenedor: [transacción de compromiso](#transacción-compromiso)_ 
+    * _Ver derivación: [clave privada de revocación de compromiso](#clave-privada-de-revocación-compromiso)_
 
-* #### *Penalty transaction*:
-   * A transaction that spends all outputs of a *[revoked commitment transaction](#revoked-commitment-transaction)*, using the *commitment revocation private key*. A *[peer](#peers)* uses this if the other peer tries to "cheat" by broadcasting a *[revoked commitment transaction](#revoked-commitment-transaction)*.
-   * _See related: [closing transaction](#closing-transaction), [commitment transaction](#commitment-transaction), [funding transaction](#funding-transaction)_
+* #### *Nodo procesador*: 
+    * Un *[nodo](#nodo)* que está procesando un paquete que se originó con un *[nodo de origen](#nodo-de-origen)* y que se envía hacia un *[nodo final](#nodo-final) * para enrutar un pago. Actúa como un *[par receptor](#par-receptor)* para recibir el mensaje, luego un [par remitente](#par-enviador) para enviar el paquete. 
+    * _Ver categoría: [nodo](#nodo)_ 
+    * _Ver relacionado: [nodo final](#nodo-final), [nodo origen](#nodo-origen)_
 
-* #### *Per-commitment secret*:
-   * Every *[commitment transaction](#commitment-transaction)* derives its keys from a per-commitment secret, which is generated such that the series of per-commitment secrets for all previous commitments can be stored compactly.
-   * _See container: [commitment transaction](#commitment-transaction)_
-   * _See derivation: [commitment revocation private key](#commitment-revocation-private-key)_
+* #### *Nodo receptor*: 
+    * Un *[nodo](#nodo)* que está recibiendo un mensaje. 
+    * _Ver categoría: [nodo](#nodo)_ 
+    * _Ver relacionado: [nodo de envío](#nodo-de-envío)_
 
-* #### *Processing node*:
-   * A *[node](#node)* that is processing a packet that originated with an *[origin node](#origin-node)* and that is being sent toward a *[final node](#final-node)* in order to route a payment. It acts as a *[receiving peer](#receiving-peer)* to receive the message, then a [sending peer](#sending-peer) to send on the packet.
-   * _See category: [node](#node)_
-   * _See related: [final node](#final-node), [origin node](#origin-node)_
+* #### *Par receptor*: 
+    * Un *[nodo](#nodo)* que está recibiendo un mensaje de un *par* conectado directamente. 
+    * _Ver categoría: [pares](#Peers)_ 
+    * _Ver relacionado: [par emisor](#par-enviador)_
 
-* #### *Receiving node*:
-   * A *[node](#node)* that is receiving a message.
-   * _See category: [node](#node)_
-   * _See related: [sending node](#sending-node)_
+* #### *Transacción de compromiso revocada*: 
+    * Una *[transacción de compromiso](#transacción-compromiso)* antigua que ha sido revocada porque se ha negociado una nueva transacción de compromiso. 
+    * _Ver categoría: [transacción de compromiso](#transacción-compromiso)_
 
-* #### *Receiving peer*:
-   * A *[node](#node)* that is receiving a message from a directly connected *peer*.
-   * _See category: [peer](#Peers)_
-   * _See related: [sending peer](#sending-peer)_
+* #### *Cierre de transacción revocada*: 
+    * Un cierre no válido de un *[canal](#canal)*, logrado mediante la transmisión de una *transacción de compromiso revocado*. Dado que el otro *par* conoce la *clave secreta de revocación de compromiso*, puede crear una *[transacción de penalización](#transacción-penalización)*. 
+    * _Ver relacionado: [cierre mutuo](#cierre-mutuo), [cierre unilateral](#cierre-unilateral)_
 
-* #### *Revoked commitment transaction*:
-   * An old *[commitment transaction](#commitment-transaction)* that has been revoked because a new commitment transaction has been negotiated.
-   * _See category: [commitment transaction](#commitment-transaction)_
+* #### *Ruta*: 
+   * Una ruta a través de Lightning Network que permite un pago desde un *nodo de origen* a un *[nodo final](#nodo-final)* a través de uno o más *[saltos](#salto)*. 
+   * _Ver relacionado: [canal](#canal)_
 
-* #### *Revoked transaction close*:
-   * An invalid close of a *[channel](#channel)*, accomplished by broadcasting a *revoked commitment transaction*. Since the other *peer* knows the *commitment revocation secret key*, it can create a *[penalty transaction](#penalty-transaction)*.
-   * _See related: [mutual close](#mutual-close), [unilateral close](#unilateral-close)_
+* #### *Nodo emisor*: 
+    * Un *[nodo](#nodo)* que está enviando un mensaje. 
+    * _Ver categoría: [nodo](#nodo)_ 
+    * _Ver relacionado: [nodo receptor](#nodo-receptor)_
+  
+* #### *Par emisor*: 
+    * Un *[nodo](#nodo)* que envía un mensaje a un *par* conectado directamente. 
+    * _Ver categoría: [pares](#Peers)_ 
+    * _Ver relacionado: [par receptor](#par-receptor)_.
 
-* #### *Route*: 
-  * A path across the Lightning Network that enables a payment from an *origin node* to a *[final node](#final-node)* across one or more *[hops](#hop)*.
-  * _See related: [channel](#channel)_
-
-* #### *Sending node*:
-   * A *[node](#node)* that is sending a message.
-   * _See category: [node](#node)_
-   * _See related: [receiving node](#receiving-node)_
-
-* #### *Sending peer*:
-   * A *[node](#node)* that is sending a message to a directly connected *peer*.
-   * _See category: [peer](#Peers)_
-   * _See related: [receiving peer](#receiving-peer)_.
-
-* #### *Unilateral close*:
-   * An uncooperative close of a *[channel](#channel)*, accomplished by broadcasting a *[commitment transaction](#commitment-transaction)*. This transaction is larger (i.e. less efficient) than a *[closing transaction](#closing-transaction)*, and the *[peer](#peers)* whose commitment is broadcast cannot access its own outputs for some previously-negotiated duration.
-   * _See related: [mutual close](#mutual-close), [revoked transaction close](#revoked-transaction-close)_
-
-## Theme Song
+* #### *Cierre unilateral*: 
+    * Un cierre no cooperativo de un *[canal](#canal)*, logrado mediante la transmisión de una *[transacción de compromiso](#transacción-compromiso)*. Esta transacción es más grande (es decir, menos eficiente) que una *[transacción de cierre](#transacción-de cierre)*, y el *[par](#peers)* cuyo compromiso se transmite no puede acceder a sus propios resultados durante una duración previamente negociada. . 
+    * _Ver relacionado: [cierre mutuo](#cierre-mutuo), [cierre de transacción revocada](#cierre-de-transacción-revocada)_
+## Tema Musical
+      [Escucha la música aquí.](https://youtu.be/edItjMHez48)
 
       Why this network could be democratic...
       Numismatic...
@@ -255,11 +253,11 @@ See [BOLT #11: Invoice Protocol for Lightning Payments](11-payment-encoding.md) 
 
 
       C'mon guys, let's get to work!
-https://youtu.be/edItjMHez48
+
 
    -- Anthony Towns <aj@erisian.com.au>
 
-## Authors
+## Autores
 
 [ FIXME: Insert Author List ]
 
