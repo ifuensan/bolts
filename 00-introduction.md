@@ -208,7 +208,7 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
     * Un cierre no cooperativo de un *[canal](#canal)*, logrado mediante la transmisión de una *[transacción de compromiso](#transacción-compromiso)*. Esta transacción es más grande (es decir, menos eficiente) que una *[transacción de cierre](#transacción-de cierre)*, y el *[par](#peers)* cuyo compromiso se transmite no puede acceder a sus propios resultados durante una duración previamente negociada. . 
     * _Ver relacionado: [cierre mutuo](#cierre-mutuo), [cierre de transacción revocada](#cierre-de-transacción-revocada)_
 ## Tema Musical
-      [Escucha la música aquí.](https://youtu.be/edItjMHez48)
+[Escucha la música aquí.](https://youtu.be/edItjMHez48)
 
       Why this network could be democratic...
       Numismatic...
