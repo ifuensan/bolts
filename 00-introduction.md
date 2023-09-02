@@ -101,7 +101,7 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
 * #### *Nodo final*: 
     * El destinatario final de un paquete que enruta un pago desde un *[nodo de origen](#nodo-de origen)* a través de algún número de *[saltos](#salto-hop)*. También es el *[par receptor](#par-receptor)* final de una cadena. 
     * _Ver categoría: [nodo](#nodo)_ 
-    * _Ver relacionado: [nodo de origen](#nodo-de-origen), [nodo de enrutador](#nodo-de-enrutador)_
+    * _Ver relacionado: [nodo de origen](#nodo-de-origen), [nodo enrutador](#nodo-enrutador)_
 
 * #### *Transacción de financiación*: 
     * Una transacción irreversible en cadena que paga a ambos *[peers](#peers)* en un *[channel](#channel)*. Sólo puede gastarse de mutuo acuerdo. 
@@ -131,7 +131,7 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
 
 * #### *Nodo*: 
     * Una computadora u otro dispositivo que sea parte de la red Lightning. 
-    * _Ver relacionado: [peers](#peers)_ 
+    * _Ver relacionado: [pares](#pares)_ 
     * _Ver tipos: [nodo final](#nodo-final), [salto](#salto-hop), [nodo origen](#nodo-origen), [nodo enrutador](#nodo-enrutador), [nodo receptor]( #nodo-receptor), [nodo emisor](#nodo-emisor)_
 * #### *Nodo de origen*: 
     * El *[nodo](#nodo)* que origina un paquete que enrutará un pago a través de una cierta cantidad de [saltos](#salto-hop) a un *[nodo final](#nodo-final)*. También es el primer [par emisor](#par-emisor) de una cadena. 
@@ -168,7 +168,7 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
     * _Ver derivación: [clave privada de revocación de compromiso](#clave-privada-de-revocación-de-compromiso)_
 
 * #### *Nodo enrutador*: 
-    * Un *[nodo](#nodo)* que está procesando un paquete que se originó con un *[nodo de origen](#nodo-de-origen)* y que se envía hacia un *[nodo final](#nodo-final) * para enrutar un pago. Actúa como un *[par receptor](#par-receptor)* para recibir el mensaje, luego un [par remitente](#par-emisor) para enviar el paquete. 
+    * Un *[nodo](#nodo)* que está procesando un paquete que se originó con un *[nodo de origen](#nodo-de-origen)* y que se envía hacia un *[nodo final](#nodo-final)* para enrutar un pago. Actúa como un *[par receptor](#par-receptor)* para recibir el mensaje, luego un [par remitente](#par-emisor) para enviar el paquete. 
     * _Ver categoría: [nodo](#nodo)_ 
     * _Ver relacionado: [nodo final](#nodo-final), [nodo origen](#nodo-origen)_
 
