@@ -132,11 +132,11 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
 * #### *Nodo*: 
     * Una computadora u otro dispositivo que sea parte de la red Lightning. 
     * _Ver relacionado: [peers](#peers)_ 
-    * _Ver tipos: [nodo final](#nodo-final), [salto](#salto-hop), [nodo origen](#nodo-origen), [nodo enrutador](#nodo-enrutador), [nodo receptor]( #nodo-receptor), [nodo-emisor](#nodo-emisor)_
+    * _Ver tipos: [nodo final](#nodo-final), [salto](#salto-hop), [nodo origen](#nodo-origen), [nodo enrutador](#nodo-enrutador), [nodo receptor]( #nodo-receptor), [nodo emisor](#nodo-emisor)_
 * #### *Nodo de origen*: 
     * El *[nodo](#nodo)* que origina un paquete que enrutará un pago a través de una cierta cantidad de [saltos](#salto-hop) a un *[nodo final](#nodo-final)*. También es el primer [par emisor](#par-emisor) de una cadena. 
     * _Ver categoría: [nodo](#nodo)_ 
-    * _Ver relacionado: [nodo final](#nodo-final), [nodo de enrutador](#nodo-de-enrutador)_
+    * _Ver relacionado: [nodo final](#nodo-final), [nodo enrutador](#nodo-enrutador)_
 
 * #### *Punto de salida*: //Outpoint
    * Un hash de transacción y un índice de salida que identifican de forma única una salida de transacción no gastada. Necesario para componer una nueva transacción, como entrada. 
@@ -175,7 +175,7 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
 * #### *Nodo receptor*: 
     * Un *[nodo](#nodo)* que está recibiendo un mensaje. 
     * _Ver categoría: [nodo](#nodo)_ 
-    * _Ver relacionado: [nodo de envío](#nodo-de-envío)_
+    * _Ver relacionado: [nodo emisor](#nodo-emisor)_
 
 * #### *Par receptor*: 
     * Un *[nodo](#nodo)* que está recibiendo un mensaje de un *par* conectado directamente. 
