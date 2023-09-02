@@ -119,8 +119,8 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
 * #### *Factura*: Una solicitud de fondos en Lightning Network, posiblemente 
      incluido el tipo de pago, el monto del pago, el vencimiento y otra información. Así es como se realizan los pagos en Lightning Network, en lugar de utilizar direcciones estilo Bitcoin. 
 
- * #### *Está bien ser impar*: //It's ok to be odd
-    * Una regla aplicada a algunos campos numéricos que indica compatibilidad opcional u obligatoria para funciones. Los números pares indican que ambos puntos finales DEBEN admitir la característica en cuestión, mientras que los números impares indican que el otro punto final PUEDE ignorar la característica. 
+ * #### *Está bien ser impar*:
+    * En inglés `It's ok to be odd`. Una regla aplicada a algunos campos numéricos que indica compatibilidad opcional u obligatoria para funciones. Los números pares indican que ambos puntos finales DEBEN admitir la característica en cuestión, mientras que los números impares indican que el otro punto final PUEDE ignorar la característica. 
 
  * #### *MSAT*: 
     * Un milisatoshi, utilizado a menudo como nombre de campo.
