@@ -90,7 +90,7 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
     * Una transacción que gasta la *[transacción de financiación](#transacción-de-financiación)*. Cada *par* tiene la firma del otro par para esta transacción, de modo que cada uno siempre tiene una transacción de compromiso que puede gastar. Después de negociar una nueva transacción de compromiso, la anterior se *revoca*. 
     * _Ver partes: [número de compromiso](#número-compromiso), [clave privada de revocación de compromiso](#clave-privada-de-revocación-compromiso), [HTLC](#HTLC-Contrato-bloqueado-por-hash-de-tiempo), [por-secreto de compromiso](#por-secreto-de-compromiso), [punto de salida](#punto-de-salida)_ 
     * _Ver relacionado: [transacción de cierre](#transacción-de-cierre), [transacción de financiación](#transacción-de-financiación), [transacción de penalización](#transacción-de-penalización)_ 
-    * _Ver tipos: [transacción de compromiso revocado](#transacción-de-compromiso-revocado)_
+    * _Ver tipos: [transacción de compromiso revocada](#transacción-de-compromiso-revocada)_
 
 * #### *Fallo el canal*: 
    *Este es un cierre forzoso del canal. Muy pronto (antes de abrir), esto puede no requerir ninguna acción más que olvidar la existencia del canal. Por lo general, requiere firmar y transmitir la última transacción de compromiso, aunque durante el cierre mutuo también se puede realizar firmando y transmitiendo una transacción de cierre mutuo. Consulte [BOLT #5](05-onchain.md#failing-a-channel)..
@@ -99,7 +99,7 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
    * Esto significa cerrar la comunicación con el par (como cerrar el socket TCP). No implica cerrar ningún canal con el par, pero sí provoca el descarte del estado no comprometido para conexiones con canales: consulte [BOLT #2](02-peer-protocol.md#message-retransmission).
 
 * #### *Nodo final*: 
-    * El destinatario final de un paquete que enruta un pago desde un *[nodo de origen](#nodo-de origen)* a través de algún número de *[saltos](#salto)*. También es el *[par receptor](#par-receptor)* final de una cadena. 
+    * El destinatario final de un paquete que enruta un pago desde un *[nodo de origen](#nodo-de origen)* a través de algún número de *[saltos](#salto-hop)*. También es el *[par receptor](#par-receptor)* final de una cadena. 
     * _Ver categoría: [nodo](#nodo)_ 
     * _Ver relacionado: [nodo de origen](#nodo-de-origen), [nodo de procesamiento](#nodo-de-procesamiento)_
 
@@ -132,9 +132,9 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
 * #### *Nodo*: 
     * Una computadora u otro dispositivo que sea parte de la red Lightning. 
     * _Ver relacionado: [peers](#peers)_ 
-    * _Ver tipos: [nodo final](#nodo-final), [salto](#salto), [nodo origen](#nodo-origen), [nodo procesamiento](#nodo-procesamiento), [nodo receptor]( #nodo-receptor), [nodo-enviador](#nodo-enviador)_
+    * _Ver tipos: [nodo final](#nodo-final), [salto](#salto-hop), [nodo origen](#nodo-origen), [nodo procesamiento](#nodo-procesamiento), [nodo receptor]( #nodo-receptor), [nodo-emisor](#nodo-emisor)_
 * #### *Nodo de origen*: 
-    * El *[nodo](#nodo)* que origina un paquete que enrutará un pago a través de una cierta cantidad de [saltos](#salto) a un *[nodo final](#nodo-final)*. También es el primer [par emisor](#par-enviador) de una cadena. 
+    * El *[nodo](#nodo)* que origina un paquete que enrutará un pago a través de una cierta cantidad de [saltos](#salto-hop) a un *[nodo final](#nodo-final)*. También es el primer [par emisor](#par-emisor) de una cadena. 
     * _Ver categoría: [nodo](#nodo)_ 
     * _Ver relacionado: [nodo final](#nodo-final), [nodo de procesamiento](#nodo-de-procesamiento)_
 
@@ -159,7 +159,7 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
     * _Ver relacionado: [nodo](#nodo)_
 
 * #### *Transacción de penalización*: 
-    * Una transacción que gasta todos los resultados de una *[transacción de compromiso revocado](#transacción-de-compromiso-revocado)*, utilizando la *clave privada de revocación de compromiso*. Un *[par](#pares)* usa esto si el otro par intenta "hacer trampa" transmitiendo una *[transacción de compromiso revocado](#transacción-de-compromiso-revocado)*. 
+    * Una transacción que gasta todos los resultados de una *[transacción de compromiso revocada](#transacción-de-compromiso-revocada)*, utilizando la *clave privada de revocación de compromiso*. Un *[par](#pares)* usa esto si el otro par intenta "hacer trampa" transmitiendo una *[transacción de compromiso revocada](#transacción-de-compromiso-revocada)*. 
     * _Ver relacionado: [transacción de cierre](#transacción-de-cierre), [transacción de compromiso](#transacción-de-compromiso), [transacción-de-financiación](#transacción-de-financiación)_
 
 * #### *Secreto por compromiso*: //Per-commitment Secret
@@ -187,11 +187,11 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
     * _Ver categoría: [transacción de compromiso](#transacción-de-compromiso)_
 
 * #### *Cierre de transacción revocada*: 
-    * Un cierre no válido de un *[canal](#canal)*, logrado mediante la transmisión de una *transacción de compromiso revocado*. Dado que el otro *par* conoce la *clave secreta de revocación de compromiso*, puede crear una *[transacción de penalización](#transacción-de-penalización)*. 
+    * Un cierre no válido de un *[canal](#canal)*, logrado mediante la transmisión de una *transacción de compromiso revocada*. Dado que el otro *par* conoce la *clave secreta de revocación de compromiso*, puede crear una *[transacción de penalización](#transacción-de-penalización)*. 
     * _Ver relacionado: [cierre mutuo](#cierre-mutuo), [cierre unilateral](#cierre-unilateral)_
 
 * #### *Ruta*: 
-   * Una ruta a través de Lightning Network que permite un pago desde un *nodo de origen* a un *[nodo final](#nodo-final)* a través de uno o más *[saltos](#salto)*. 
+   * Una ruta a través de Lightning Network que permite un pago desde un *nodo de origen* a un *[nodo final](#nodo-final)* a través de uno o más *[saltos](#salto-hop)*. 
    * _Ver relacionado: [canal](#canal)_
 
 * #### *Nodo emisor*: 
