@@ -167,7 +167,7 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
     * _Ver contenedor: [transacción de compromiso](#transacción-compromiso)_ 
     * _Ver derivación: [clave privada de revocación de compromiso](#clave-privada-de-revocación-compromiso)_
 
-* #### *Nodo procesador*: 
+* #### *Nodo enrutador*: 
     * Un *[nodo](#nodo)* que está procesando un paquete que se originó con un *[nodo de origen](#nodo-de-origen)* y que se envía hacia un *[nodo final](#nodo-final) * para enrutar un pago. Actúa como un *[par receptor](#par-receptor)* para recibir el mensaje, luego un [par remitente](#par-enviador) para enviar el paquete. 
     * _Ver categoría: [nodo](#nodo)_ 
     * _Ver relacionado: [nodo final](#nodo-final), [nodo origen](#nodo-origen)_
@@ -205,10 +205,10 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
     * _Ver relacionado: [par receptor](#par-receptor)_.
 
 * #### *Cierre unilateral*: 
-    * Un cierre no cooperativo de un *[canal](#canal)*, logrado mediante la transmisión de una *[transacción de compromiso](#transacción-compromiso)*. Esta transacción es más grande (es decir, menos eficiente) que una *[transacción de cierre](#transacción-de cierre)*, y el *[par](#peers)* cuyo compromiso se transmite no puede acceder a sus propios resultados durante una duración previamente negociada. . 
+    * Un cierre no cooperativo de un *[canal](#canal)*, logrado mediante la transmisión de una *[transacción de compromiso](#transacción-compromiso)*. Esta transacción es más grande (es decir, menos eficiente) que una *[transacción de cierre](#transacción-de cierre)*, y el *[par](#peers)* cuyo compromiso se transmite no puede acceder a sus propios resultados durante un tiempo previamente negociado.
     * _Ver relacionado: [cierre mutuo](#cierre-mutuo), [cierre de transacción revocada](#cierre-de-transacción-revocada)_
 ## Tema Musical
-[Escucha la música aquí.](https://youtu.be/edItjMHez48)
+   [Escucha el tema musical aquí.](https://youtu.be/edItjMHez48)
 
       Why this network could be democratic...
       Numismatic...
