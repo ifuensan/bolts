@@ -88,7 +88,7 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
 
 * #### *Transacción de compromiso*: 
     * Una transacción que gasta la *[transacción de financiación](#transacción-de-financiación)*. Cada *par* tiene la firma del otro par para esta transacción, de modo que cada uno siempre tiene una transacción de compromiso que puede gastar. Después de negociar una nueva transacción de compromiso, la anterior se *revoca*. 
-    * _Ver partes: [número de compromiso](#número-compromiso), [clave privada de revocación de compromiso](#clave-privada-de-revocación-compromiso), [HTLC](#HTLC-Contrato-bloqueado-por-hash-de-tiempo), [por-secreto de compromiso](#por-secreto-de-compromiso), [punto de salida](#punto-de-salida)_ 
+    * _Ver partes: [número de compromiso](#número-compromiso), [clave privada de revocación de compromiso](#clave-privada-de-revocación-de-compromiso), [HTLC](#HTLC-Contrato-bloqueado-por-hash-de-tiempo), [por-secreto de compromiso](#por-secreto-de-compromiso), [punto de salida](#punto-de-salida)_ 
     * _Ver relacionado: [transacción de cierre](#transacción-de-cierre), [transacción de financiación](#transacción-de-financiación), [transacción de penalización](#transacción-de-penalización)_ 
     * _Ver tipos: [transacción de compromiso revocada](#transacción-de-compromiso-revocada)_
 
@@ -101,7 +101,7 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
 * #### *Nodo final*: 
     * El destinatario final de un paquete que enruta un pago desde un *[nodo de origen](#nodo-de origen)* a través de algún número de *[saltos](#salto-hop)*. También es el *[par receptor](#par-receptor)* final de una cadena. 
     * _Ver categoría: [nodo](#nodo)_ 
-    * _Ver relacionado: [nodo de origen](#nodo-de-origen), [nodo de procesamiento](#nodo-de-procesamiento)_
+    * _Ver relacionado: [nodo de origen](#nodo-de-origen), [nodo de enrutador](#nodo-de-enrutador)_
 
 * #### *Transacción de financiación*: 
     * Una transacción irreversible en cadena que paga a ambos *[peers](#peers)* en un *[channel](#channel)*. Sólo puede gastarse de mutuo acuerdo. 
@@ -132,11 +132,11 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
 * #### *Nodo*: 
     * Una computadora u otro dispositivo que sea parte de la red Lightning. 
     * _Ver relacionado: [peers](#peers)_ 
-    * _Ver tipos: [nodo final](#nodo-final), [salto](#salto-hop), [nodo origen](#nodo-origen), [nodo procesamiento](#nodo-procesamiento), [nodo receptor]( #nodo-receptor), [nodo-emisor](#nodo-emisor)_
+    * _Ver tipos: [nodo final](#nodo-final), [salto](#salto-hop), [nodo origen](#nodo-origen), [nodo enrutador](#nodo-enrutador), [nodo receptor]( #nodo-receptor), [nodo-emisor](#nodo-emisor)_
 * #### *Nodo de origen*: 
     * El *[nodo](#nodo)* que origina un paquete que enrutará un pago a través de una cierta cantidad de [saltos](#salto-hop) a un *[nodo final](#nodo-final)*. También es el primer [par emisor](#par-emisor) de una cadena. 
     * _Ver categoría: [nodo](#nodo)_ 
-    * _Ver relacionado: [nodo final](#nodo-final), [nodo de procesamiento](#nodo-de-procesamiento)_
+    * _Ver relacionado: [nodo final](#nodo-final), [nodo de enrutador](#nodo-de-enrutador)_
 
 * #### *Punto de salida*: //Outpoint
    * Un hash de transacción y un índice de salida que identifican de forma única una salida de transacción no gastada. Necesario para componer una nueva transacción, como entrada. 
@@ -165,7 +165,7 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
 * #### *Secreto por compromiso*: //Per-commitment Secret
     * Cada *[transacción de compromiso](#transacción-de-compromiso)* deriva sus claves de un secreto por compromiso, que se genera de manera que la serie de secretos por compromiso para todos los compromisos anteriores se pueda almacenar de forma compacta. 
     * _Ver contenedor: [transacción de compromiso](#transacción-de-compromiso)_ 
-    * _Ver derivación: [clave privada de revocación de compromiso](#clave-privada-de-revocación-compromiso)_
+    * _Ver derivación: [clave privada de revocación de compromiso](#clave-privada-de-revocación-de-compromiso)_
 
 * #### *Nodo enrutador*: 
     * Un *[nodo](#nodo)* que está procesando un paquete que se originó con un *[nodo de origen](#nodo-de-origen)* y que se envía hacia un *[nodo final](#nodo-final) * para enrutar un pago. Actúa como un *[par receptor](#par-receptor)* para recibir el mensaje, luego un [par remitente](#par-emisor) para enviar el paquete. 
