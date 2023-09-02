@@ -68,27 +68,27 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
      Para la cadena principal de la cadena de bloques de Bitcoin, el valor `chain_hash` DEBE ser (codificado en hexadecimal): `6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000`.
 
 * #### *Canal*: 
-    * Un método rápido, fuera de la cadena, de intercambio mutuo entre dos *[pares](#peers)*. Para realizar transacciones de fondos, los pares intercambian firmas para crear una *[transacción de compromiso](#transacción-compromiso)* actualizada. 
+    * Un método rápido, fuera de la cadena, de intercambio mutuo entre dos *[pares](#pares)*. Para realizar transacciones de fondos, los pares intercambian firmas para crear una *[transacción de compromiso](#transacción-de-compromiso)* actualizada. 
     * _Ver métodos de cierre: [cierre mutuo](#cierre-mutuo), [cierre de transacción revocada](#cierre-de-transacción-revocada), [cierre unilateral](#cierre-unilateral)_ 
     * _Ver relacionado: [ruta](#ruta)_
-    * 
+  
 * #### *Cierre de transacción*: 
     * Una transacción generada como parte de un *[cierre mutuo](#cierre mutuo)*. Una transacción de cierre es similar a una _transacción de compromiso_, pero sin pagos pendientes. 
-    * _Ver relacionado: [transacción de compromiso](#transacción-compromiso), [transacción de financiación](#transacción-de financiación), [transacción de penalización](#transacción-penalización)_
+    * _Ver relacionado: [transacción de compromiso](#transacción-de-compromiso), [transacción de financiación](#transacción-de-financiación), [transacción de penalización](#transacción-de-penalización)_
 
 * #### *Número de compromiso*: 
-    * Un contador incremental de 48 bits para cada *[transacción de compromiso](#transacción-compromiso)*; Los contadores son independientes para cada *par* en el *canal* y comienzan en 0. 
-    * _Ver contenedor: [transacción de compromiso](#transacción-compromiso)_ 
+    * Un contador incremental de 48 bits para cada *[transacción de compromiso](#transaccion-de-compromiso)*; Los contadores son independientes para cada *par* en el *canal* y comienzan en 0. 
+    * _Ver contenedor: [transacción de compromiso](#transacción-de-compromiso)_ 
     * _Ver relacionado: [transacción de cierre](#transacción-de-cierre), [transacción de financiación](#transacción-de-financiación), [transacción de penalización](#transacción-de-penalización)_
 
 * #### *Clave privada de revocación de compromiso*: 
-    * Cada *[transacción de compromiso](#transacción-compromiso)* tiene un valor de clave privada de revocación de compromiso único que permite al otro *par* gastar todos los resultados inmediatamente: revelar esta clave es cómo se revocan las transacciones de compromiso antiguas. Para admitir la revocación, cada resultado de la transacción de compromiso hace referencia a la clave pública de revocación del compromiso. 
-    * _Ver contenedor: [transacción de compromiso](#transacción-compromiso)_ 
+    * Cada *[transacción de compromiso](#transacción-de-compromiso)* tiene un valor de clave privada de revocación de compromiso único que permite al otro *par* gastar todos los resultados inmediatamente: revelar esta clave es cómo se revocan las transacciones de compromiso antiguas. Para admitir la revocación, cada resultado de la transacción de compromiso hace referencia a la clave pública de revocación del compromiso. 
+    * _Ver contenedor: [transacción de compromiso](#transacción-de-compromiso)_ 
     * _Ver autor: [secreto por compromiso](#secreto-por-compromiso)_
 
 * #### *Transacción de compromiso*: 
     * Una transacción que gasta la *[transacción de financiación](#transacción-de-financiación)*. Cada *par* tiene la firma del otro par para esta transacción, de modo que cada uno siempre tiene una transacción de compromiso que puede gastar. Después de negociar una nueva transacción de compromiso, la anterior se *revoca*. 
-    * _Ver partes: [número de compromiso](#número-compromiso), [clave privada de revocación de compromiso](#clave-privada-de-revocación-compromiso), [HTLC](#HTLC-Hashed-Time-Locked-Contract), [por -secreto de compromiso](#por-secreto-de-compromiso), [punto de salida](#punto de salida)_ 
+    * _Ver partes: [número de compromiso](#número-compromiso), [clave privada de revocación de compromiso](#clave-privada-de-revocación-compromiso), [HTLC](#HTLC-Contrato-bloqueado-por-hash-de-tiempo), [por-secreto de compromiso](#por-secreto-de-compromiso), [punto de salida](#punto-de-salida)_ 
     * _Ver relacionado: [transacción de cierre](#transacción-de-cierre), [transacción de financiación](#transacción-de-financiación), [transacción de penalización](#transacción-de-penalización)_ 
     * _Ver tipos: [transacción de compromiso revocado](#transacción-de-compromiso-revocado)_
 
@@ -119,7 +119,7 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
 * #### *Factura*: Una solicitud de fondos en Lightning Network, posiblemente 
      incluido el tipo de pago, el monto del pago, el vencimiento y otra información. Así es como se realizan los pagos en Lightning Network, en lugar de utilizar direcciones estilo Bitcoin. 
 
- * #### *Está bien ser raro*: //It's ok to be odd
+ * #### *Está bien ser impar*: //It's ok to be odd
     * Una regla aplicada a algunos campos numéricos que indica compatibilidad opcional u obligatoria para funciones. Los números pares indican que ambos puntos finales DEBEN admitir la característica en cuestión, mientras que los números impares indican que el otro punto final PUEDE ignorar la característica. 
 
  * #### *MSAT*: 
@@ -150,7 +150,7 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
 * #### *Preimagen de pago*: 
     * Comprobante de recepción del pago, en poder del destinatario final, que es la única persona que conoce este secreto. El destinatario final libera la preimagen para liberar fondos. La preimagen de pago tiene un hash como *[hash de pago](#Payment-hash)* en el *[HTLC](#HTLC-Hashed-Time-Locked-Contract)*. 
     * _Ver contenedor: [HTLC](#HTLC-Hashed-Time-Locked-Contract)_ 
-    * _Ver derivación: [hash de pago](#Payment-hash)_
+    * _Ver derivación: [hash de pago](#Hash-de-pago)_
 
 * #### *Pares*: 
     * Dos *[nodos](#nodo)* que están en comunicación entre sí. 
@@ -159,16 +159,16 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
     * _Ver relacionado: [nodo](#nodo)_
 
 * #### *Transacción de penalización*: 
-    * Una transacción que gasta todos los resultados de una *[transacción de compromiso revocado](#transacción-de-compromiso-revocado)*, utilizando la *clave privada de revocación de compromiso*. Un *[peer](#peers)* usa esto si el otro par intenta "hacer trampa" transmitiendo una *[transacción de compromiso revocado](#revoked-commitment-transaction)*. 
+    * Una transacción que gasta todos los resultados de una *[transacción de compromiso revocado](#transacción-de-compromiso-revocado)*, utilizando la *clave privada de revocación de compromiso*. Un *[par](#pares)* usa esto si el otro par intenta "hacer trampa" transmitiendo una *[transacción de compromiso revocado](#transacción-de-compromiso-revocado)*. 
     * _Ver relacionado: [transacción de cierre](#transacción-de-cierre), [transacción de compromiso](#transacción-de-compromiso), [transacción-de-financiación](#transacción-de-financiación)_
 
 * #### *Secreto por compromiso*: //Per-commitment Secret
-    * Cada *[transacción de compromiso](#transacción-compromiso)* deriva sus claves de un secreto por compromiso, que se genera de manera que la serie de secretos por compromiso para todos los compromisos anteriores se pueda almacenar de forma compacta. 
-    * _Ver contenedor: [transacción de compromiso](#transacción-compromiso)_ 
+    * Cada *[transacción de compromiso](#transacción-de-compromiso)* deriva sus claves de un secreto por compromiso, que se genera de manera que la serie de secretos por compromiso para todos los compromisos anteriores se pueda almacenar de forma compacta. 
+    * _Ver contenedor: [transacción de compromiso](#transacción-de-compromiso)_ 
     * _Ver derivación: [clave privada de revocación de compromiso](#clave-privada-de-revocación-compromiso)_
 
 * #### *Nodo enrutador*: 
-    * Un *[nodo](#nodo)* que está procesando un paquete que se originó con un *[nodo de origen](#nodo-de-origen)* y que se envía hacia un *[nodo final](#nodo-final) * para enrutar un pago. Actúa como un *[par receptor](#par-receptor)* para recibir el mensaje, luego un [par remitente](#par-enviador) para enviar el paquete. 
+    * Un *[nodo](#nodo)* que está procesando un paquete que se originó con un *[nodo de origen](#nodo-de-origen)* y que se envía hacia un *[nodo final](#nodo-final) * para enrutar un pago. Actúa como un *[par receptor](#par-receptor)* para recibir el mensaje, luego un [par remitente](#par-emisor) para enviar el paquete. 
     * _Ver categoría: [nodo](#nodo)_ 
     * _Ver relacionado: [nodo final](#nodo-final), [nodo origen](#nodo-origen)_
 
@@ -179,15 +179,15 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
 
 * #### *Par receptor*: 
     * Un *[nodo](#nodo)* que está recibiendo un mensaje de un *par* conectado directamente. 
-    * _Ver categoría: [pares](#Peers)_ 
-    * _Ver relacionado: [par emisor](#par-enviador)_
+    * _Ver categoría: [pares](#pares)_ 
+    * _Ver relacionado: [par emisor](#par-emisor)_
 
 * #### *Transacción de compromiso revocada*: 
-    * Una *[transacción de compromiso](#transacción-compromiso)* antigua que ha sido revocada porque se ha negociado una nueva transacción de compromiso. 
-    * _Ver categoría: [transacción de compromiso](#transacción-compromiso)_
+    * Una *[transacción de compromiso](#transacción-de-compromiso)* antigua que ha sido revocada porque se ha negociado una nueva transacción de compromiso. 
+    * _Ver categoría: [transacción de compromiso](#transacción-de-compromiso)_
 
 * #### *Cierre de transacción revocada*: 
-    * Un cierre no válido de un *[canal](#canal)*, logrado mediante la transmisión de una *transacción de compromiso revocado*. Dado que el otro *par* conoce la *clave secreta de revocación de compromiso*, puede crear una *[transacción de penalización](#transacción-penalización)*. 
+    * Un cierre no válido de un *[canal](#canal)*, logrado mediante la transmisión de una *transacción de compromiso revocado*. Dado que el otro *par* conoce la *clave secreta de revocación de compromiso*, puede crear una *[transacción de penalización](#transacción-de-penalización)*. 
     * _Ver relacionado: [cierre mutuo](#cierre-mutuo), [cierre unilateral](#cierre-unilateral)_
 
 * #### *Ruta*: 
@@ -201,11 +201,11 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
   
 * #### *Par emisor*: 
     * Un *[nodo](#nodo)* que envía un mensaje a un *par* conectado directamente. 
-    * _Ver categoría: [pares](#Peers)_ 
+    * _Ver categoría: [pares](#pares)_ 
     * _Ver relacionado: [par receptor](#par-receptor)_.
 
 * #### *Cierre unilateral*: 
-    * Un cierre no cooperativo de un *[canal](#canal)*, logrado mediante la transmisión de una *[transacción de compromiso](#transacción-compromiso)*. Esta transacción es más grande (es decir, menos eficiente) que una *[transacción de cierre](#transacción-de cierre)*, y el *[par](#peers)* cuyo compromiso se transmite no puede acceder a sus propios resultados durante un tiempo previamente negociado.
+    * Un cierre no cooperativo de un *[canal](#canal)*, logrado mediante la transmisión de una *[transacción de compromiso](#transacción-de-compromiso)*. Esta transacción es más grande (es decir, menos eficiente) que una *[transacción de cierre](#transacción-de-cierre)*, y el *[par](#pares)* cuyo compromiso se transmite no puede acceder a sus propios resultados durante un tiempo previamente negociado.
     * _Ver relacionado: [cierre mutuo](#cierre-mutuo), [cierre de transacción revocada](#cierre-de-transacción-revocada)_
 ## Tema Musical
    [Escucha el tema musical aquí.](https://youtu.be/edItjMHez48)
