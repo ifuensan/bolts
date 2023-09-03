@@ -1,6 +1,6 @@
 # BOLT #0: Introducción e Índice
 
-¡Bienvenidos, colegas! Estos documentos de `Basis of Lightning Technology` (BOLT) describen un protocolo de capa 2 para la transferencia de Bitcoin fuera de la cadena (`off-chain`) mediante cooperación mutua, confiando en transacciones en la cadena (`on-chain`) para la aplicación si es necesario.
+¡Bienvenido, amigo! Estos documentos de `Basis of Lightning Technology` (BOLT) describen un protocolo de capa 2 para la transferencia de Bitcoin fuera de la cadena (`off-chain`) mediante cooperación mutua, confiando en transacciones en la cadena (`on-chain`) para la aplicación si es necesario.
 
 Algunos requisitos son sutiles; hemos tratado de resaltar las motivaciones y el razonamiento detrás de los resultados que ves aquí. Seguramente nos hemos quedado cortos; si encuentras alguna parte confusa o incorrecta, por favor contáctanos y ayúdanos a mejorar.
 
