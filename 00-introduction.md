@@ -1,6 +1,6 @@
 # BOLT #0: Introducción e Índice
 
-¡Bienvenido, amigo! Estos documentos de `Basis of Lightning Technology` (BOLT) describen un protocolo de capa 2 para la transferencia de Bitcoin fuera de la cadena (`off-chain`) mediante cooperación mutua, confiando en transacciones en la cadena (`on-chain`) para la aplicación si es necesario.
+¡Bienvenidos, colegas! Estos documentos de `Basis of Lightning Technology` (BOLT) describen un protocolo de capa 2 para la transferencia de Bitcoin fuera de la cadena (`off-chain`) mediante cooperación mutua, confiando en transacciones en la cadena (`on-chain`) para la aplicación si es necesario.
 
 Algunos requisitos son sutiles; hemos tratado de resaltar las motivaciones y el razonamiento detrás de los resultados que ves aquí. Seguramente nos hemos quedado cortos; si encuentras alguna parte confusa o incorrecta, por favor contáctanos y ayúdanos a mejorar.
 
@@ -86,7 +86,7 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
     * _Ver relacionado: [transacción de cierre](#transacción-de-cierre), [transacción de financiación](#transacción-de-financiación), [transacción de penalización](#transacción-de-penalización)_ 
     * _Ver tipos: [transacción de compromiso revocada](#transacción-de-compromiso-revocada)_
 
-* #### *Fallo el canal*: 
+* #### *Fallo del canal*: 
    * Este es un cierre forzoso del canal. Muy pronto (antes de abrir), esto puede no requerir ninguna acción más que olvidar la existencia del canal. Por lo general, requiere firmar y transmitir la última transacción de compromiso, aunque durante el cierre mutuo también se puede realizar firmando y transmitiendo una transacción de cierre mutuo. Consulte [BOLT #5](05-onchain.md#fallando-un-canal).
 
 * #### *Cerrar la conexión*: 
@@ -106,7 +106,7 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
     * _Ver categoría: [nodo](#nodo)_
 
 * #### *HTLC*: Contrato bloqueado por hash de tiempo. 
-    * Un pago condicional entre dos *[peers](#peers)*: el destinatario puede gastar el pago presentando su firma y una *preimagen de pago*, de lo contrario, el pagador puede cancelar el contrato gastándolo después de un tiempo determinado. Estos se implementan como resultados de la *[transacción de compromiso](#transacción-compromiso)*. 
+    * Un pago condicional entre dos *[pares](#peers)*: el destinatario puede gastar el pago presentando su firma y una *preimagen de pago*, de lo contrario, el pagador puede cancelar el contrato gastándolo después de un tiempo determinado. Estos se implementan como resultados de la *[transacción de compromiso](#transacción-compromiso)*. 
     * _Ver contenedor: [transacción de compromiso](#transacción-compromiso)_ 
     * _Ver partes: [Hash de pago](#Hash-de-pago), [Preimagen de pago](#Preimagen-de-pago)_
 
