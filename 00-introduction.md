@@ -27,24 +27,18 @@ Lightning funciona estableciendo canales: dos participantes crean un canal de pa
 
 Inicialmente, cada uno de ellos tiene una transacción de bitcoin que envía todos los bitcoins (por ejemplo, 0.1 bitcoin) de vuelta a una de las partes. Más adelante, pueden firmar una nueva transacción de bitcoin que distribuye estos fondos de manera diferente, por ejemplo, 0.09 bitcoin para una parte y 0.01 bitcoin para la otra, e invalidar la transacción de bitcoin anterior para que no se gaste.
 
-Consulta [BOLT #2: Establecimiento de Canales](02-peer-protocol.md#channel-establishment) para obtener más información sobre el establecimiento de canales y [BOLT #3: Salida de la Transacción de Financiamiento](03-transactions.md#funding-transaction-output) para conocer el formato de la transacción de bitcoin que crea el canal. Consulta [BOLT #5: Recomendaciones para el Manejo de Transacciones](05-onchain.md) para conocer los requisitos cuando los participantes no están de acuerdo o fallan, y la transacción de bitcoin con firmas cruzadas debe ser gastada.
+Consulta [BOLT #2: Establecimiento de Canales](02-peer-protocol.md#establecimiento-de-canal) para obtener más información sobre el establecimiento de canales y [BOLT #3: Salida de la Transacción de Financiación](03-transactions.md#funding-transaction-output) para conocer el formato de la transacción de bitcoin que crea el canal. Consulta [BOLT #5: Recomendaciones para el Manejo de Transacciones](05-onchain.md) para conocer los requisitos cuando los participantes no están de acuerdo o fallan, y la transacción de bitcoin con firmas cruzadas debe ser gastada.
 
 ### Pagos condicionales
 
-A Lightning channel only allows payment between two participants, but channels can be connected together to form a network that allows payments between all members of the network. This requires the technology of a conditional payment, which can be added to a channel, e.g. "you get 0.01 bitcoin if you reveal the secret within 6 hours".
-Once the recipient presents the secret, that bitcoin transaction is replaced with one lacking the conditional payment and adding the funds to that recipient's output.
-
-See [BOLT #2: Adding an HTLC](02-peer-protocol.md#adding-an-htlc-update_add_htlc) for the commands a participant uses to add a conditional payment, and [BOLT #3: Commitment Transaction](03-transactions.md#commitment-transaction) for the complete format of the bitcoin transaction.
-
-
 Un canal Lightning solo permite pagos entre dos participantes, pero los canales se pueden conectar entre sí para formar una red que permite pagos entre todos los miembros de la red. Esto requiere la tecnología de un pago condicional, que se puede agregar a un canal, por ejemplo "obtienes 0,01 bitcoin si revelas el secreto dentro de las 6 horas". Una vez que el destinatario presenta el secreto, esa transacción de bitcoin se reemplaza por una que carece del pago condicional y se agregan los fondos a la salida de ese destinatario.
 
-Consulte el [BOLT #2: Agregar un HTLC](02-peer-protocol.md#adding-an-htlc-update_add_htlc) para conocer los comandos que usa un participante para agregar un pago condicional, y el [BOLT #3: Commitment Transaction o `Transacción de compromiso`](03-transactions.md#commitment-transaction) para conocer el formato completo de la transacción bitcoin.
+Consulte el [BOLT #2: Agregar un HTLC](02-peer-protocol.md#añadiendo-un-htlc-update_add_htlc) para conocer los comandos que usa un participante para agregar un pago condicional, y el [BOLT #3: Commitment Transaction o `Transacción de compromiso`](03-transactions.md#commitment-transaction) para conocer el formato completo de la transacción bitcoin.
 
 ### Reenvío
 Un pago condicional de este tipo se puede enviar de forma segura a otro participante con un límite de tiempo más bajo, por ejemplo "obtienes 0,01 bitcoin si revelas el secreto dentro de las 5 horas". Esto permite encadenar canales en una red sin confiar en los intermediarios.
 
-Consulte [BOLT #2: Reenvío de HTLCs](02-peer-protocol.md#forwarding-htlcs) para obtener detalles sobre el reenvío de pagos, [BOLT #4: Estructura de paquetes](04-onion-routing.md#packet-structure) para saber cómo se transportan las instrucciones de pago.
+Consulte [BOLT #2: Reenvío de HTLCs](02-peer-protocol.md#reenvío-de-htlcs) para obtener detalles sobre el reenvío de pagos, [BOLT #4: Estructura de paquetes](04-onion-routing.md#estructura-del-paquete) para saber cómo se transportan las instrucciones de pago.
 
 ### Topología de la red
 Para realizar un pago, un participante necesita saber a través de qué canales puede enviar. Los participantes se cuentan entre sí sobre la creación y las actualizaciones de canales y nodos.
@@ -73,7 +67,7 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
     * _Ver relacionado: [ruta](#ruta)_
   
 * #### *Cierre de transacción*: 
-    * Una transacción generada como parte de un *[cierre mutuo](#cierre mutuo)*. Una transacción de cierre es similar a una _transacción de compromiso_, pero sin pagos pendientes. 
+    * Una transacción generada como parte de un *[cierre mutuo](#cierre-mutuo)*. Una transacción de cierre es similar a una _transacción de compromiso_, pero sin pagos pendientes. 
     * _Ver relacionado: [transacción de compromiso](#transacción-de-compromiso), [transacción de financiación](#transacción-de-financiación), [transacción de penalización](#transacción-de-penalización)_
 
 * #### *Número de compromiso*: 
@@ -84,7 +78,7 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
 * #### *Clave privada de revocación de compromiso*: 
     * Cada *[transacción de compromiso](#transacción-de-compromiso)* tiene un valor de clave privada de revocación de compromiso único que permite al otro *par* gastar todos los resultados inmediatamente: revelar esta clave es cómo se revocan las transacciones de compromiso antiguas. Para admitir la revocación, cada resultado de la transacción de compromiso hace referencia a la clave pública de revocación del compromiso. 
     * _Ver contenedor: [transacción de compromiso](#transacción-de-compromiso)_ 
-    * _Ver autor: [secreto por compromiso](#secreto-por-compromiso)_
+    * _Ver autor: [secreto por compromiso](#secreto-por-medio-del-compromiso)_
 
 * #### *Transacción de compromiso*: 
     * Una transacción que gasta la *[transacción de financiación](#transacción-de-financiación)*. Cada *par* tiene la firma del otro par para esta transacción, de modo que cada uno siempre tiene una transacción de compromiso que puede gastar. Después de negociar una nueva transacción de compromiso, la anterior se *revoca*. 
@@ -93,22 +87,22 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
     * _Ver tipos: [transacción de compromiso revocada](#transacción-de-compromiso-revocada)_
 
 * #### *Fallo el canal*: 
-   *Este es un cierre forzoso del canal. Muy pronto (antes de abrir), esto puede no requerir ninguna acción más que olvidar la existencia del canal. Por lo general, requiere firmar y transmitir la última transacción de compromiso, aunque durante el cierre mutuo también se puede realizar firmando y transmitiendo una transacción de cierre mutuo. Consulte [BOLT #5](05-onchain.md#failing-a-channel)..
+   * Este es un cierre forzoso del canal. Muy pronto (antes de abrir), esto puede no requerir ninguna acción más que olvidar la existencia del canal. Por lo general, requiere firmar y transmitir la última transacción de compromiso, aunque durante el cierre mutuo también se puede realizar firmando y transmitiendo una transacción de cierre mutuo. Consulte [BOLT #5](05-onchain.md#fallando-un-canal).
 
 * #### *Cerrar la conexión*: 
-   * Esto significa cerrar la comunicación con el par (como cerrar el socket TCP). No implica cerrar ningún canal con el par, pero sí provoca el descarte del estado no comprometido para conexiones con canales: consulte [BOLT #2](02-peer-protocol.md#message-retransmission).
+   * Esto significa cerrar la comunicación con el par (como cerrar el socket TCP). No implica cerrar ningún canal con el par, pero sí provoca el descarte del estado no comprometido para conexiones con canales: consulte [BOLT #2](02-peer-protocol.md#retransmisión-de-mensaje).
 
 * #### *Nodo final*: 
     * El destinatario final de un paquete que enruta un pago desde un *[nodo de origen](#nodo-de origen)* a través de algún número de *[saltos](#salto-hop)*. También es el *[par receptor](#par-receptor)* final de una cadena. 
     * _Ver categoría: [nodo](#nodo)_ 
-    * _Ver relacionado: [nodo de origen](#nodo-de-origen), [nodo enrutador](#nodo-enrutador)_
+    * _Ver relacionado: [nodo origen](#nodo-origen), [nodo enrutador](#nodo-enrutador)_
 
 * #### *Transacción de financiación*: 
     * Una transacción irreversible en cadena que paga a ambos *[peers](#peers)* en un *[channel](#channel)*. Sólo puede gastarse de mutuo acuerdo. 
     * _Ver relacionado: [transacción de cierre](#transacción-de-cierre), [transacción de compromiso](#transacción-de-compromiso), [transacción-de-penalización](#transacción-de-penalización)_
 
 * #### *Salto `Hop`*: 
-    * Un *[nodo](#nodo)*. Generalmente, un nodo intermedio que se encuentra entre un *[nodo de origen](#nodo-de-origen)* y un *[nodo final](#nodo-final)*. 
+    * Un *[nodo](#nodo)*. Generalmente, un nodo intermedio que se encuentra entre un *[nodo origen](#nodo-origen)* y un *[nodo final](#nodo-final)*. 
     * _Ver categoría: [nodo](#nodo)_
 
 * #### *HTLC*: Contrato bloqueado por hash de tiempo. 
@@ -133,23 +127,23 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
     * Una computadora u otro dispositivo que sea parte de la red Lightning. 
     * _Ver relacionado: [pares](#pares)_ 
     * _Ver tipos: [nodo final](#nodo-final), [salto](#salto-hop), [nodo origen](#nodo-origen), [nodo enrutador](#nodo-enrutador), [nodo receptor]( #nodo-receptor), [nodo emisor](#nodo-emisor)_
-* #### *Nodo de origen*: 
+* #### *Nodo origen*: 
     * El *[nodo](#nodo)* que origina un paquete que enrutará un pago a través de una cierta cantidad de [saltos](#salto-hop) a un *[nodo final](#nodo-final)*. También es el primer [par emisor](#par-emisor) de una cadena. 
     * _Ver categoría: [nodo](#nodo)_ 
     * _Ver relacionado: [nodo final](#nodo-final), [nodo enrutador](#nodo-enrutador)_
 
-* #### *Punto de salida*: //Outpoint
+* #### *Punto de salida*:
    * Un hash de transacción y un índice de salida que identifican de forma única una salida de transacción no gastada. Necesario para componer una nueva transacción, como entrada. 
    * _Ver relacionado: [transacción de financiación](#transacción-de-financiación), [transacción de compromiso](#transacción-de-compromiso)_
 
 * #### *Hash de pago*: 
     * El *[HTLC](#HTLC-Hashed-Time-Locked-Contract)* contiene el hash de pago, que es el hash de la *[preimagen de pago](#Payment-preimage)*. 
     * _Ver contenedor: [HTLC](#HTLC-Hashed-Time-Locked-Contract)_ 
-    * _Ver autor: [Preimagen de pago](#Pago-preimagen)_
+    * _Ver autor: [Preimagen de pago](#Preimagen-de-pago)_
 
 * #### *Preimagen de pago*: 
-    * Comprobante de recepción del pago, en poder del destinatario final, que es la única persona que conoce este secreto. El destinatario final libera la preimagen para liberar fondos. La preimagen de pago tiene un hash como *[hash de pago](#Payment-hash)* en el *[HTLC](#HTLC-Hashed-Time-Locked-Contract)*. 
-    * _Ver contenedor: [HTLC](#HTLC-Hashed-Time-Locked-Contract)_ 
+    * Comprobante de recepción del pago, en poder del destinatario final, que es la única persona que conoce este secreto. El destinatario final libera la preimagen para liberar fondos. La preimagen de pago tiene un hash como *[hash de pago](#hash-de-pago)* en el *[HTLC](#htlc-contrato-bloqueado-por-hash-de-tiempo)*. 
+    * _Ver contenedor: [HTLC](#htlc-contrato-bloqueado-por-hash-de-tiempo)_ 
     * _Ver derivación: [hash de pago](#Hash-de-pago)_
 
 * #### *Pares*: 
@@ -162,13 +156,13 @@ Consulte [BOLT #11: Protocolo de factura para pagos Lightning](11-payment-encodi
     * Una transacción que gasta todos los resultados de una *[transacción de compromiso revocada](#transacción-de-compromiso-revocada)*, utilizando la *clave privada de revocación de compromiso*. Un *[par](#pares)* usa esto si el otro par intenta "hacer trampa" transmitiendo una *[transacción de compromiso revocada](#transacción-de-compromiso-revocada)*. 
     * _Ver relacionado: [transacción de cierre](#transacción-de-cierre), [transacción de compromiso](#transacción-de-compromiso), [transacción-de-financiación](#transacción-de-financiación)_
 
-* #### *Secreto por compromiso*: //Per-commitment Secret
-    * Cada *[transacción de compromiso](#transacción-de-compromiso)* deriva sus claves de un secreto por compromiso, que se genera de manera que la serie de secretos por compromiso para todos los compromisos anteriores se pueda almacenar de forma compacta. 
+* #### *Secreto por medio del compromiso*:
+    * Cada *[transacción de compromiso](#transacción-de-compromiso)* deriva sus claves de un secreto por medio del compromiso, que se genera de manera que la serie de secretos por compromiso para todos los compromisos anteriores se pueda almacenar de forma compacta. 
     * _Ver contenedor: [transacción de compromiso](#transacción-de-compromiso)_ 
     * _Ver derivación: [clave privada de revocación de compromiso](#clave-privada-de-revocación-de-compromiso)_
 
 * #### *Nodo enrutador*: 
-    * Un *[nodo](#nodo)* que está procesando un paquete que se originó con un *[nodo de origen](#nodo-de-origen)* y que se envía hacia un *[nodo final](#nodo-final)* para enrutar un pago. Actúa como un *[par receptor](#par-receptor)* para recibir el mensaje, luego un [par remitente](#par-emisor) para enviar el paquete. 
+    * Un *[nodo](#nodo)* que está procesando un paquete que se originó con un *[nodo origen](#nodo-origen)* y que se envía hacia un *[nodo final](#nodo-final)* para enrutar un pago. Actúa como un *[par receptor](#par-receptor)* para recibir el mensaje, luego un [par remitente](#par-emisor) para enviar el paquete. 
     * _Ver categoría: [nodo](#nodo)_ 
     * _Ver relacionado: [nodo final](#nodo-final), [nodo origen](#nodo-origen)_
 
