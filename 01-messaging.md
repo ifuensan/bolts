@@ -2,20 +2,20 @@
 # BOLT #1: Protocolo Base
 
 <!-- omit in toc -->
-## Overview
+## Visión General
 
 Este protocolo asume un mecanismo subyacente de transporte autenticado y ordenado que se encarga de enmarcar mensajes individuales. 
 [BOLT #8](08-transport.md) especifica la capa de transporte canónico utilizada en Lightning, aunque puede ser reemplazado por cualquier transporte que cumpla con las garantías anteriores.
 
 El puerto TCP predeterminado depende de la red utilizada. Las redes más comunes son:
 
-* Bitcoin mainet con número de puerto 9735 o el correspondiente
-* Bitcoin testnet con el número de puerto 19735 (`0x4D17`)
-* Bitcoin signet con el número de puerto 39735 (`0xF87`).
+* Bitcoin `mainet` con número de puerto 9735 o el correspondiente
+* Bitcoin `testnet` con el número de puerto 19735 (`0x4D17`)
+* Bitcoin `signet` con el número de puerto 39735 (`0xF87`).
 
 El punto Unicode para LIGHTNING <sup>[1](#reference-1)</sup>, y el puerto convenido trantan de seguir la convención de Bitcoin Core.
 
-Todos los campos de datos son big-endian sin signo a menos que se especifique lo contrario.
+Todos los campos de datos son `big-endian` sin signo a menos que se especifique lo contrario.
 <!-- omit in toc -->
 ## Índice
 - [Manejo y multiplexado de conexiones](#manejo-y-multiplexado-de-conexiones)
@@ -23,16 +23,16 @@ Todos los campos de datos son big-endian sin signo a menos que se especifique lo
 - [Formato Tipo-Longitud-Valor](#formato-tipo-longitud-valor)
 - [Tipos Fundamentales](#tipos-fundamentales)
 - [Mensajes de configuración](#mensajes-de-configuración)
-  - [The `init` Message](#the-init-message)
-  - [The `error` and `warning` Messages](#the-error-and-warning-messages)
+  - [El Mensaje `init`](#el-mensaje-init)
+  - [El Mensaje de `error` y `warning`](#el-mensaje-de-error-y-warning)
 - [Mensajes de control](#mensajes-de-control)
   - [Los mensajes `ping` y `pong`](#los-mensajes-ping-y-pong)
-- [Appendix A: BigSize Test Vectors](#appendix-a-bigsize-test-vectors)
-- [Appendix B: Type-Length-Value Test Vectors](#appendix-b-type-length-value-test-vectors)
-- [Appendix C: Message Extension](#appendix-c-message-extension)
-- [Acknowledgments](#acknowledgments)
-- [References](#references)
-- [Authors](#authors)
+- [Apéndice A: Vectores de Prueba BigSize](#apéndice-a-vectores-de-prueba-bigsize)
+- [Apéndice B: Vectores de Test Tipo-Longitud-Valor](#apéndice-b-vectores-de-test-tipo-longitud-valor)
+- [Apéndice C: Extensión de Mensaje](#apéndice-c-extensión-de-mensaje)
+- [Agradecimientos](#agradecimientos)
+- [Referencias](#referencias)
+- [Autores](#autores)
 
 
 ## Manejo y multiplexado de conexiones
@@ -41,11 +41,11 @@ Las implementaciones DEBEN usar una sola conexión por par; los mensajes de cana
 ## Formato del Mensaje Lightning
 Después del descifrado, todos los mensajes Lightning tienen el formato:
 
-1. `type`: campo big-endian 2-byte que hace referencia la tipo de mensaje
-2. `payload`: una carga útil ("payload") de longitud variable que comprende el resto del mensaje y que se ajusta a un formato que coincide con el `tipo`
-3. `extension`: an optional [TLV stream](#type-length-value-format)
+1. `type`: campo `big-endian` 2-byte que hace referencia la tipo de mensaje
+2. `payload`: una carga útil (`payload`) de longitud variable que comprende el resto del mensaje y que se ajusta a un formato que coincide con el `tipo`
+3. `extension`: an optional [TLV stream](#formato-tipo-longitud-valor)
 
-El campo `type` indica como intérpretar el campo `payload``
+El campo `type` indica como intérpretar el campo `payload`
 El formato para cada tipo individual está definido por una especificación en este repositorio.
 El tipo sigue la regla _está bien ser impar_, por lo que los nodos PUEDEN enviar tipos _impares_ sin asegurarse de que el destinatario los entienda.
 
@@ -90,103 +90,82 @@ Un nodo receptor:
 <!-- omit in toc -->
 ### Base Lógica
 
-Por defecto, las claves públicas de `SHA2` y Bitcoin están codificadas como big endian, por lo que sería inusual usar un endian diferente para otros campos.
+Por defecto, las claves públicas de `SHA2` y Bitcoin están codificadas como `big endian`, por lo que sería inusual usar un `endian` diferente para otros campos.
 
 La longitud está limitada a 65535 bytes por la envoltura criptográfica, y los mensajes en el protocolo nunca superan esa longitud de todos modos.
 
 La regla _está bien ser impar_ permite futuras extensiones opcionales sin negociación o codificación especial en los clientes. De manera similar, el campo _extensión_ permite una expansión futura al permitir que los remitentes incluyan datos TLV adicionales. Tenga en cuenta que un campo de _extensión_ solo se puede agregar cuando el mensaje `carga útil` aún no llena la longitud máxima de 65535 bytes.
 
-//Implementations may prefer to have message data aligned on an 8-byte boundary (the largest natural alignment requirement of any type here); however, adding a 6-byte padding after the type field was considered wasteful: alignment may be achieved by decrypting the message into a buffer with 6-bytes of pre-padding.
-
-Las implementaciones pueden preferir tener datos de mensajes alineados en un límite de 8 bytes (el requisito de alineación natural más grande de cualquier tipo aquí); sin embargo, agregar un relleno de 6 bytes después del campo de tipo se consideró un desperdicio: la alineación se puede lograr descifrando el mensaje en un búfer con 6 bytes de relleno previo.
+Las implementaciones pueden preferir que los datos del mensaje estén alineados en un límite de 8 bytes (el requisito de alineación natural más grande de cualquier tipo aquí); sin embargo, agregar un relleno de 6 bytes después del campo de tipo se consideraba un desperdicio: la alineación se puede lograr descifrando el mensaje en un búfer con pre-relleno de 6 bytes.
 
 ## Formato Tipo-Longitud-Valor
 
-Throughout the protocol, a TLV (Type-Length-Value) format is used to allow for
-the backwards-compatible addition of new fields to existing message types.
+A lo largo del protocolo, se utiliza un formato TLV (Tipo-Longitud-Valor) para permitir la adición compatible con versiones anteriores de nuevos campos a tipos de mensajes existentes.
 
-A `tlv_record` represents a single field, encoded in the form:
+Un registro TLV (`tlv_record`) representa un único campo, codificado de la siguiente manera:
 
 * [`bigsize`: `type`]
 * [`bigsize`: `length`]
 * [`length`: `value`]
 
-A `tlv_stream` is a series of (possibly zero) `tlv_record`s, represented as the
-concatenation of the encoded `tlv_record`s. When used to extend existing
-messages, a `tlv_stream` is typically placed after all currently defined fields.
+Un flujo TLV (`tlv_stream`) es una serie de registros `tlv_record` (posiblemente cero), representados como la concatenación de los registros `tlv_record` codificados. Cuando se utilizan para extender mensajes existentes, un `tlv_stream` se coloca típicamente después de todos los campos actualmente definidos.
 
-The `type` is encoded using the BigSize format. It functions as a
-message-specific, 64-bit identifier for the `tlv_record` determining how the
-contents of `value` should be decoded. `type` identifiers below 2^16 are
-reserved for use in this specification. `type` identifiers greater than or equal
-to 2^16 are available for custom records. Any record not defined in this
-specification is considered a custom record. This includes experimental and
-application-specific messages.
+El `type` se codifica utilizando el formato BigSize. Funciona como un identificador específico del mensaje de 64 bits para el `tlv_record`, determinando cómo se debe decodificar el contenido de `value`. Los identificadores de `type` por debajo de 2^16 están reservados para su uso en esta especificación. Los identificadores de `type` iguales o superiores a 2^16 están disponibles para registros personalizados. Cualquier registro no definido en esta especificación se considera un registro personalizado. Esto incluye mensajes experimentales y específicos de la aplicación.
 
-The `length` is encoded using the BigSize format signaling the size of
-`value` in bytes.
+La `length` se codifica utilizando el formato BigSize, indicando el tamaño de `value` en bytes.
 
-The `value` depends entirely on the `type`, and should be encoded or decoded
-according to the message-specific format determined by `type`.
+El `value` depende completamente del `type` y debe codificarse o decodificarse de acuerdo con el formato específico del mensaje determinado por el `type`.
 
 <!-- omit in toc -->
-### Requirements
+### Requisitos
 
-The sending node:
- - MUST order `tlv_record`s in a `tlv_stream` by strictly-increasing `type`,
-   hence MUST not produce more than a single TLV record with the same `type`
- - MUST minimally encode `type` and `length`.
- - When defining custom record `type` identifiers:
-   - SHOULD pick random `type` identifiers to avoid collision with other
-     custom types.
-   - SHOULD pick odd `type` identifiers when regular nodes should ignore the
-     additional data.
-   - SHOULD pick even `type` identifiers when regular nodes should reject the
-     full tlv stream containing the custom record.
- - SHOULD NOT use redundant, variable-length encodings in a `tlv_record`.
+Para el nodo emisor:
+- DEBE ordenar los `tlv_record`s en un `tlv_stream` por `type` estrictamente creciente, por lo tanto, NO DEBE producir más de un único registro TLV con el mismo `type`.
+- DEBE codificar mínimamente `type` y `length`.
+- Al definir identificadores de registro personalizados `type`:
+  - DEBERÍA elegir identificadores `type` aleatorios para evitar colisiones con otros tipos personalizados.
+  - DEBERÍA elegir identificadores `type` impares cuando los nodos regulares deban ignorar los datos adicionales.
+  - DEBERÍA elegir identificadores `type` pares cuando los nodos regulares deban rechazar el flujo TLV completo que contiene el registro personalizado.
+- NO DEBERÍA usar codificaciones redundantes de longitud variable en un `tlv_record`.
 
-The receiving node:
- - if zero bytes remain before parsing a `type`:
-   - MUST stop parsing the `tlv_stream`.
- - if a `type` or `length` is not minimally encoded:
-   - MUST fail to parse the `tlv_stream`.
- - if decoded `type`s are not strictly-increasing (including situations when
-   two or more occurrences of the same `type` are met):
-   - MUST fail to parse the `tlv_stream`.
- - if `length` exceeds the number of bytes remaining in the message:
-   - MUST fail to parse the `tlv_stream`.
- - if `type` is known:
-   - MUST decode the next `length` bytes using the known encoding for `type`.
-   - if `length` is not exactly equal to that required for the known encoding for `type`:
-     - MUST fail to parse the `tlv_stream`.
-   - if variable-length fields within the known encoding for `type` are not minimal:
-     - MUST fail to parse the `tlv_stream`.
- - otherwise, if `type` is unknown:
-   - if `type` is even:
-     - MUST fail to parse the `tlv_stream`.
-   - otherwise, if `type` is odd:
-     - MUST discard the next `length` bytes.
+Para el nodo receptor:
+- Si no quedan bytes antes de analizar un `type`:
+  - DEBE dejar de analizar el `tlv_stream`.
+- Si un `type` o `length` no está codificado de forma mínima:
+  - DEBE fallar al analizar el `tlv_stream`.
+- Si los `type`s decodificados no son estrictamente crecientes (incluyendo situaciones en las que se encuentren dos o más ocurrencias del mismo `type`):
+  - DEBE fallar al analizar el `tlv_stream`.
+- Si `length` supera la cantidad de bytes restantes en el mensaje:
+  - DEBE fallar al analizar el `tlv_stream`.
+- Si `type` es conocido:
+  - DEBE decodificar los próximos `length` bytes utilizando la codificación conocida para `type`.
+  - Si `length` no es exactamente igual al requerido para la codificación conocida para `type`:
+    - DEBE fallar al analizar el `tlv_stream`.
+  - Si los campos de longitud variable dentro de la codificación conocida para `type` no son mínimos:
+    - DEBE fallar al analizar el `tlv_stream`.
+- De lo contrario, si `type` es desconocido:
+  - Si `type` es par:
+    - DEBE fallar al analizar el `tlv_stream`.
+  - De lo contrario, si `type` es impar:
+    - DEBE descartar los próximos `length` bytes.
 
 <!-- omit in toc -->
-### Rationale
+### Racional
 
 La principal ventaja de usar TLV es que un lector puede ignorar nuevos campos que no comprende, ya que cada campo tiene el tamaño exacto del elemento codificado. Sin TLV, incluso si un nodo no desea usar un campo en particular, el nodo se ve obligado a agregar lógica de análisis para ese campo para determinar el desplazamiento de los campos que siguen.
 
-La estricta restricción de monotonía asegura que todos los `tipos` sean únicos y puedan aparecer como máximo una vez. Campos que se asignan a objetos complejos, p. los vectores, mapas o estructuras deben hacerlo definiendo la codificación de modo que el objeto se serialice dentro de un solo `tlv_record`. La restricción de unicidad, entre otras cosas, permite las siguientes optimizaciones:
-
+La estricta restricción de monotonía asegura que todos los `type` sean únicos y que puedan aparecer como máximo una vez. Campos que se asignan a objetos complejos, p. ej. los vectores, mapas o estructuras deben hacerlo definiendo la codificación de modo que el objeto se serialice dentro de un solo `tlv_record`. La restricción de unicidad, entre otras cosas, permite las siguientes optimizaciones:
 
  - el orden canónico se define independientemente de los `value`s codificados
  - el orden canónico se puede conocer en tiempo de compilación, en lugar de determinarse dinámicamente en el momento de la codificación.
- - verificar el ordenamiento canónico requiere menos estado y es menos costoso.
+ - verificar el orden canónico requiere menos estado y es menos costoso.
  - los campos de tamaño variable pueden reservar por adelantado su tamaño esperado, en lugar de agregar elementos secuencialmente e incurrir en una sobrecarga de duplicación y copia.
-
-The use of a bigsize for `type` and `length` permits a space savings for small `type`s or short `value`s. This potentially leaves more space for application data over the wire or in an onion payload.
 
 El uso de un `bigsize` para `type` y `length` permite ahorrar espacio para `type`s pequeños o `value`s cortos. Potencialmente, esto deja más espacio para los datos de la aplicación a través del cable o en una carga útil de cebolla.
 
 Todos los `type`s deben aparecer en orden creciente para crear una codificación canónica de los `tlv_record`s subyacentes. Esto es crucial cuando se calculan las firmas sobre un `tlv_stream`, ya que garantiza que los verificadores puedan volver a calcular el mismo resumen del mensaje que el firmante. Tenga en cuenta que el orden canónico sobre el conjunto de campos se puede aplicar incluso si el verificador no comprende lo que contienen los campos.
 
-Los escritores (`Writers`) deben evitar el uso de codificaciones redundantes de longitud variable en un `tlv_record`, ya que esto da como resultado la codificación de la longitud dos veces y complica el cálculo de la longitud exterior. Como ejemplo, al escribir una matriz de bytes de longitud variable, el `value` debe contener solo los bytes sin procesar y renunciar a una longitud interna adicional, ya que `tlv_record` ya lleva la cantidad de bytes que siguen. Por otro lado, si un `tlv_record` contiene múltiples elementos de longitud variable, esto no se consideraría redundante y es necesario para permitir que el receptor analice elementos individuales de `value`.
+Los escritores deben evitar el uso de codificaciones redundantes de longitud variable en un `tlv_record`, ya que esto da como resultado la codificación de la longitud dos veces y complica el cálculo de la longitud exterior. Como ejemplo, al escribir una matriz de bytes de longitud variable, el `value` debe contener solo los bytes sin procesar y renunciar a una longitud interna adicional, ya que el `tlv_record` ya lleva la cantidad de bytes que siguen. Por otro lado, si un `tlv_record` contiene múltiples elementos de longitud variable, esto no se consideraría redundante y es necesario para permitir que el receptor analice elementos individuales de `value`.
 
 ## Tipos Fundamentales
 
@@ -210,23 +189,23 @@ Cuando se usa para codificar montos, los campos anteriores DEBEN cumplir con el 
 
 También se definen los siguientes tipos de conveniencia:
 
-* `chain_hash`: a 32-byte chain identifier (see [BOLT #0](00-introduction.md#glossary-and-terminology-guide))
-* `channel_id`: a 32-byte channel_id (see [BOLT #2](02-peer-protocol.md#definition-of-channel-id))
-* `sha256`: a 32-byte SHA2-256 hash
-* `signature`: a 64-byte bitcoin Elliptic Curve signature
-* `point`: a 33-byte Elliptic Curve point (compressed encoding as per [SEC 1 standard](http://www.secg.org/sec1-v2.pdf#subsubsection.2.3.3))
-* `short_channel_id`: an 8 byte value identifying a channel (see [BOLT #7](07-routing-gossip.md#definition-of-short-channel-id))
-* `bigsize`: a variable-length, unsigned integer similar to Bitcoin's CompactSize encoding, but big-endian.  Described in [BigSize](#appendix-a-bigsize-test-vectors).
+- `chain_hash`: un identificador de cadena de 32 bytes (consultar [BOLT #0](00-introduction.md#glosario-y-guía-de-la-terminología)).
+- `channel_id`: un canal de identificación de 32 bytes (consultar [BOLT #2](02-peer-protocol.md#definición-de-channel_id)).
+- `sha256`: un hash SHA2-256 de 32 bytes.
+- `signature`: una firma de curva elíptica de Bitcoin de 64 bytes.
+- `point`: un punto de curva elíptica de 33 bytes (codificación comprimida según el [estándar SEC 1](http://www.secg.org/sec1-v2.pdf#subsubsection.2.3.3)).
+- `short_channel_id`: un valor de 8 bytes que identifica un canal (consultar [BOLT #7](07-routing-gossip.md#definición-del-short_channel_id)).
+- `bigsize`: un entero sin signo de longitud variable similar a la codificación CompactSize de Bitcoin, pero en big-endian. Se describe en [BigSize](#apéndice-a-vectores-de-prueba-bigsize).
 
 ## Mensajes de configuración
 
-### The `init` Message
+### El Mensaje `init`
 
-Once authentication is complete, the first message reveals the features supported or required by this node, even if this is a reconnection.
+Una vez que se completa la autenticación, el primer mensaje revela las características admitidas o requeridas por este nodo, incluso si se trata de una reconexión.
 
-[BOLT #9](09-features.md) specifies lists of features. Each feature is generally represented by 2 bits. The least-significant bit is numbered 0, which is _even_, and the next most significant bit is numbered 1, which is _odd_.  For historical reasons, features are divided into global and local feature bitmasks.
+[BOLT #9](09-features.md) especifica listas de características. Por lo general, cada característica se representa mediante 2 bits. El bit menos significativo se numera a 0, que es _par_, y el siguiente bit más significativo se numera a 1, que es _impar_. Por razones históricas, las características se dividen en máscaras de bits de características globales y locales.
 
-The `features` field MUST be padded to bytes with 0s.
+El campo `features` DEBE estar rellenado con bytes que contengan 0s.
 
 1. type: 16 (`init`)
 2. data:
@@ -245,59 +224,52 @@ The `features` field MUST be padded to bytes with 0s.
     2. data:
         * [`...*byte`:`data`]
 
-The optional `networks` indicates the chains the node is interested in.
-The optional `remote_addr` can be used to circumvent NAT issues.
+El opcional `networks` indica las cadenas de bloques en las que el nodo está interesado.
+El opcional `remote_addr` puede ser utilizado para sortear problemas de NAT.
 
 <!-- omit in toc -->
-#### Requirements
+#### Requisitos
 
-The sending node:
-  - MUST send `init` as the first Lightning message for any connection.
-  - MUST set feature bits as defined in [BOLT #9](09-features.md).
-  - MUST set any undefined feature bits to 0.
-  - SHOULD NOT set features greater than 13 in `globalfeatures`.
-  - SHOULD use the minimum length required to represent the `features` field.
-  - SHOULD set `networks` to all chains it will gossip or open channels for.
-  - SHOULD set `remote_addr` to reflect the remote IP address (and port) of an
-    incoming connection, if the node is the receiver and the connection was done
-    via IP.
-  - if it sets `remote_addr`:
-    - MUST set it to a valid `address descriptor` (1 byte type and data) as described in [BOLT 7](07-routing-gossip.md#the-node_announcement-message).
-    - SHOULD NOT set private addresses as `remote_addr`.
+Para el nodo emisor:
+   - DEBE enviar `init` como el primer mensaje de Lightning para cualquier conexión.
+   - DEBE establecer los bits de características según se define en [BOLT #9](09-features.md).
+   - DEBE establecer cualquier bit de características indefinido a 0.
+   - NO DEBERÍA establecer características mayores que 13 en `globalfeatures`.
+   - DEBERÍA utilizar la longitud mínima requerida para representar el campo `features`.
+   - DEBERÍA establecer `networks` en todas las cadenas para las que va a difundir o abrir canales.
+   - DEBERÍA establecer `remote_addr` para reflejar la dirección IP remota (y el puerto) de una conexión entrante, si el nodo es el receptor y la conexión se realizó mediante IP.
+   - Si establece `remote_addr`:
+     - DEBE configurarlo como un descriptor de dirección válido (1 byte de tipo y datos) según se describe en [BOLT 7](07-routing-gossip.md#el-mensaje-node_announcement).
+     - NO DEBERÍA establecer direcciones privadas como `remote_addr`.
 
-The receiving node:
-  - MUST wait to receive `init` before sending any other messages.
-  - MUST combine (logical OR) the two feature bitmaps into one logical `features` map.
-  - MUST respond to known feature bits as specified in [BOLT #9](09-features.md).
-  - upon receiving unknown _odd_ feature bits that are non-zero:
-    - MUST ignore the bit.
-  - upon receiving unknown _even_ feature bits that are non-zero:
-    - MUST close the connection.
-  - upon receiving `networks` containing no common chains
-    - MAY close the connection.
-  - if the feature vector does not set all known, transitive dependencies:
-    - MUST close the connection.
-  - MAY use the `remote_addr` to update its `node_announcement`
+Para el nodo receptor:
+   - DEBE esperar para recibir `init` antes de enviar cualquier otro mensaje.
+   - DEBE combinar (OR lógico) los dos mapas de bits de características en un mapa lógico único llamado `features`.
+   - DEBE responder a los bits de características conocidos según se especifica en [BOLT #9](09-features.md).
+   - al recibir bits de características desconocidos _impares_ que no sean cero:
+     - DEBE ignorar el bit.
+   - al recibir bits de características desconocidos _pares_ que no sean cero:
+     - DEBE cerrar la conexión.
+   - al recibir `networks` que no contenga cadenas comunes:
+     - PUEDE cerrar la conexión.
+   - si el vector de características no establece todas las dependencias conocidas y transitivas:
+     - DEBE cerrar la conexión.
+   - PUEDE usar `remote_addr` para actualizar su `node_announcement`.
 
 <!-- omit in toc -->
-#### Rationale
+#### Justificación
 
-There used to be two feature bitfields here, but for backwards compatibility they're now
-combined into one.
+Anteriormente, había dos campos de bits de características aquí, pero para mantener la compatibilidad con versiones anteriores, ahora se han combinado en uno solo.
 
-This semantic allows both future incompatible changes and future backward compatible changes. Bits should generally be assigned in pairs, in order that optional features may later become compulsory.
+Esta semántica permite tanto cambios futuros incompatibles como cambios futuros compatibles con versiones anteriores. Por lo general, los bits deben asignarse en pares, para que las características opcionales puedan convertirse posteriormente en obligatorias.
 
-Nodes wait for receipt of the other's features to simplify error
-diagnosis when features are incompatible.
+Los nodos esperan recibir las características del otro para simplificar el diagnóstico de errores cuando las características son incompatibles.
 
-Since all networks share the same port, but most implementations only
-support a single network, the `networks` fields avoids nodes
-erroneously believing they will receive updates about their preferred
-network, or that they can open channels.
+Dado que todas las redes comparten el mismo puerto, pero la mayoría de las implementaciones solo admiten una sola red, el campo `networks` evita que los nodos crean erróneamente que recibirán actualizaciones sobre su red preferida o que pueden abrir canales en ella.
 
-### The `error` and `warning` Messages
+### El Mensaje de `error` y `warning`
 
-For simplicity of diagnosis, it's often useful to tell a peer that something is incorrect.
+Para simplificar el diagnóstico, a menudo es útil informar a un par que algo es incorrecto.
 
 1. type: 17 (`error`)
 2. data:
@@ -312,70 +284,61 @@ For simplicity of diagnosis, it's often useful to tell a peer that something is 
    * [`len*byte`:`data`]
 
 <!-- omit in toc -->
-#### Requirements
+#### Requisitos
 
-The channel is referred to by `channel_id`, unless `channel_id` is 0 (i.e. all bytes are 0), in which case it refers to all channels.
+Para el canal se utiliza `channel_id`, a menos que `channel_id` sea 0 (es decir, todos los bytes son 0), en cuyo caso se refiere a todos los canales.
 
-The funding node:
-  - for all error messages sent before (and including) the `funding_created` message:
-    - MUST use `temporary_channel_id` in lieu of `channel_id`.
+El nodo de financiación:
+   - para todos los mensajes de error enviados antes (y hasta) el mensaje `funding_created`:
+     - DEBE usar `temporary_channel_id` en lugar de `channel_id`.
 
-The fundee node:
-  - for all error messages sent before (and not including) the `funding_signed` message:
-    - MUST use `temporary_channel_id` in lieu of `channel_id`.
+El nodo receptor de fondos:
+   - para todos los mensajes de error enviados antes (y que no incluyen) el mensaje `funding_signed`:
+     - DEBE usar `temporary_channel_id` en lugar de `channel_id`.
 
-A sending node:
-  - SHOULD send `error` for protocol violations or internal errors that make channels unusable or that make further communication unusable.
-  - SHOULD send `error` with the unknown `channel_id` in reply to messages of type `32`-`255` related to unknown channels.
-  - when sending `error`:
-    - MUST fail the channel(s) referred to by the error message.
-    - MAY set `channel_id` to all zero to indicate all channels.
-  - when sending `warning`:
-    - MAY set `channel_id` to all zero if the warning is not related to a specific channel.
-  - MAY close the connection after sending.
-  - MAY send an empty `data` field.
-  - when failure was caused by an invalid signature check:
-    - SHOULD include the raw, hex-encoded transaction in reply to a `funding_created`, `funding_signed`, `closing_signed`, or `commitment_signed` message.
+Un nodo emisor:
+   - DEBERÍA enviar un `error` en caso de violaciones del protocolo o errores internos que hagan que los canales sean inutilizables o que dificulten la comunicación adicional.
+   - DEBERÍA enviar un `error` con el `channel_id` desconocido en respuesta a mensajes de tipo `32`-`255` relacionados con canales desconocidos.
+   - al enviar un `error`:
+     - DEBE fallar el o los canales a los que se refiere el mensaje de error.
+     - PUEDE establecer `channel_id` en todos los ceros para indicar todos los canales.
+   - al enviar un `warning`:
+     - PUEDE establecer `channel_id` en todos los ceros si la advertencia no está relacionada con un canal específico.
+     - PUEDE cerrar la conexión después de enviar.
+     - PUEDE enviar un campo `data` vacío.
+     - cuando la falla fue causada por una verificación de firma inválida:
+       - DEBERÍA incluir la transacción en crudo en respuesta a un mensaje `funding_created`, `funding_signed`, `closing_signed` o `commitment_signed`.
 
-The receiving node:
-  - upon receiving `error`:
-    - if `channel_id` is all zero:
-      - MUST fail all channels with the sending node.
-    - otherwise:
-      - MUST fail the channel referred to by `channel_id`, if that channel is with the sending node.
-  - upon receiving `warning`:
-    - SHOULD log the message for later diagnosis.
-    - MAY disconnect.
-    - MAY reconnect after some delay to retry.
-    - MAY attempt `shutdown` if permitted at this point.
-  - if no existing channel is referred to by `channel_id`:
-    - MUST ignore the message.
-  - if `data` is not composed solely of printable ASCII characters (For reference: the printable character set includes byte values 32 through 126, inclusive):
-    - SHOULD NOT print out `data` verbatim.
+El nodo receptor:
+   - al recibir un `error`:
+     - si `channel_id` es todo cero:
+       - DEBE fallar todos los canales con el nodo emisor.
+     - de lo contrario:
+       - DEBE fallar el canal al que se refiere `channel_id`, si ese canal está con el nodo emisor.
+   - al recibir un `warning`:
+     - DEBERÍA registrar el mensaje para un diagnóstico posterior.
+     - PUEDE desconectarse.
+     - PUEDE reconectarse después de un cierto retraso para volver a intentarlo.
+     - PUEDE intentar un `shutdown` si está permitido en este momento.
+   - si no existe un canal existente al que se refiere `channel_id`:
+     - DEBE ignorar el mensaje.
+   - si `data` no está compuesto únicamente por caracteres ASCII imprimibles (Para referencia: el conjunto de caracteres imprimibles incluye valores de byte del 32 al 126, inclusive):
+     - NO DEBERÍA imprimir `data` tal cual.
 
 <!-- omit in toc -->
-#### Rationale
+#### Justificación
 
-There are unrecoverable errors that require an abort of conversations;
-if the connection is simply dropped, then the peer may retry the
-connection. It's also useful to describe protocol violations for
-diagnosis, as this indicates that one peer has a bug.
+Existen errores irreparables que requieren la interrupción de conversaciones; si la conexión simplemente se cierra, el par puede intentar nuevamente la conexión. También es útil describir violaciones del protocolo para el diagnóstico, ya que esto indica que uno de los pares tiene un error.
 
-On the other hand, overuse of error messages has lead to
-implementations ignoring them (to avoid an otherwise expensive channel
-break), so the "warning" message was added to allow some degree of
-retry or recovery for spurious errors.
+Por otro lado, el uso excesivo de mensajes de error ha llevado a implementaciones a ignorarlos (para evitar una desconexión costosa del canal), por lo que se agregó el mensaje de "warning" para permitir cierto grado de reintentos o recuperación de errores espurios.
 
-It may be wise not to distinguish errors in production settings, lest
-it leak information — hence, the optional `data` field.
+Puede ser prudente no distinguir errores en entornos de producción, para evitar que se filtre información, de ahí el campo opcional `data`.
 
 ## Mensajes de control
 
 ### Los mensajes `ping` y `pong`
 
-In order to allow for the existence of long-lived TCP connections, at
-times it may be required that both ends keep alive the TCP connection at the
-application level. Such messages also allow obfuscation of traffic patterns.
+Con el fin de permitir la existencia de conexiones TCP de larga duración, en ocasiones puede ser necesario que ambos extremos mantengan viva la conexión TCP a nivel de la aplicación. Estos mensajes también permiten la ofuscación de patrones de tráfico.
 
 1. type: 18 (`ping`)
 2. data:
@@ -383,11 +346,7 @@ application level. Such messages also allow obfuscation of traffic patterns.
     * [`u16`:`byteslen`]
     * [`byteslen*byte`:`ignored`]
 
-The `pong` message is to be sent whenever a `ping` message is received. It
-serves as a reply and also serves to keep the connection alive, while
-explicitly notifying the other end that the receiver is still active. Within
-the received `ping` message, the sender will specify the number of bytes to be
-included within the data payload of the `pong` message.
+El mensaje `pong` se envía siempre que se recibe un mensaje `ping`. Sirve como respuesta y también para mantener la conexión activa, al mismo tiempo que notifica explícitamente al otro extremo que el receptor sigue activo. Dentro del mensaje `ping` recibido, el remitente especificará la cantidad de bytes que se deben incluir en la carga de datos del mensaje `pong`.
 
 1. type: 19 (`pong`)
 2. data:
@@ -395,96 +354,63 @@ included within the data payload of the `pong` message.
     * [`byteslen*byte`:`ignored`]
 
 <!-- omit in toc -->
-#### Requirements
+#### Requisitos
 
-A node sending a `ping` message:
-  - SHOULD set `ignored` to 0s.
-  - MUST NOT set `ignored` to sensitive data such as secrets or portions of initialized
-memory.
-  - if it doesn't receive a corresponding `pong`:
-    - MAY close the network connection,
-      - and MUST NOT fail the channels in this case.
+Un nodo que envía un mensaje `ping`:
+   - DEBERÍA establecer `ignored` en 0s.
+   - NO DEBE establecer `ignored` en datos sensibles como secretos o porciones de memoria inicializada.
+   - Si no recibe un `pong` correspondiente:
+     - PUEDE cerrar la conexión de red,
+       - Y NO DEBE fallar los canales en este caso.
 
-A node sending a `pong` message:
-  - SHOULD set `ignored` to 0s.
-  - MUST NOT set `ignored` to sensitive data such as secrets or portions of initialized
- memory.
+Un nodo que envía un mensaje `pong`:
+   - DEBERÍA establecer `ignored` en 0s.
+   - NO DEBE establecer `ignored` en datos sensibles como secretos o porciones de memoria inicializada.
 
-A node receiving a `ping` message:
-  - if `num_pong_bytes` is less than 65532:
-    - MUST respond by sending a `pong` message, with `byteslen` equal to `num_pong_bytes`.
-  - otherwise (`num_pong_bytes` is **not** less than 65532):
-    - MUST ignore the `ping`.
+Un nodo que recibe un mensaje `ping`:
+   - Si `num_pong_bytes` es menor que 65532:
+     - DEBE responder enviando un mensaje `pong`, con `byteslen` igual a `num_pong_bytes`.
+   - De lo contrario (`num_pong_bytes` **no** es menor que 65532):
+     - DEBE ignorar el `ping`.
 
-A node receiving a `pong` message:
-  - if `byteslen` does not correspond to any `ping`'s `num_pong_bytes` value it has sent:
-    - MAY close the connection.
+Un nodo que recibe un mensaje `pong`:
+   - Si `byteslen` no corresponde a ningún valor `num_pong_bytes` de `ping` que haya enviado:
+     - PUEDE cerrar la conexión.
 
 <!-- omit in toc -->
-### Rationale
+### Justificación
 
-The largest possible message is 65535 bytes; thus, the maximum sensible `byteslen`
-is 65531 — in order to account for the type field (`pong`) and the `byteslen` itself. This allows
-a convenient cutoff for `num_pong_bytes` to indicate that no reply should be sent.
+El mensaje más grande posible es de 65535 bytes; por lo tanto, el `byteslen` máximo razonable es de 65531, para tener en cuenta el campo de tipo (`pong`) y el propio `byteslen`. Esto permite un límite conveniente para `num_pong_bytes` para indicar que no se debe enviar ninguna respuesta.
 
-Connections between nodes within the network may be long lived, as payment
-channels have an indefinite lifetime. However, it's likely that
-no new data will be
-exchanged for a
-significant portion of a connection's lifetime. Also, on several platforms it's possible that Lightning
-clients will be put to sleep without prior warning. Hence, a
-distinct `ping` message is used, in order to probe for the liveness of the connection on
-the other side, as well as to keep the established connection active.
+Las conexiones entre nodos dentro de la red pueden ser de larga duración, ya que los canales de pago tienen una duración indefinida. Sin embargo, es probable que no se intercambie nuevos datos durante una parte significativa de la vida útil de una conexión. Además, en varias plataformas es posible que los clientes de Lightning se pongan en modo de suspensión sin previo aviso. Por lo tanto, se utiliza un mensaje `ping` distinto para sondear la conectividad del otro lado, así como para mantener activa la conexión establecida.
 
-Additionally, the ability for a sender to request that the receiver send a
-response with a particular number of bytes enables nodes on the network to
-create _synthetic_ traffic. Such traffic can be used to partially defend
-against packet and timing analysis — as nodes can fake the traffic patterns of
-typical exchanges without applying any true updates to their respective
-channels.
+Además, la capacidad para que un remitente solicite que el receptor envíe una respuesta con un número específico de bytes permite a los nodos en la red crear tráfico sintético. Este tipo de tráfico se puede utilizar para defenderse parcialmente contra el análisis de paquetes y de sincronización de tiempos, ya que los nodos pueden simular los patrones de tráfico de intercambios típicos sin aplicar ninguna actualización real a sus respectivos canales.
 
-When combined with the onion routing protocol defined in
-[BOLT #4](04-onion-routing.md),
-careful statistically driven synthetic traffic can serve to further bolster the
-privacy of participants within the network.
+Cuando se combina con el protocolo de enrutamiento de cebolla definido en [BOLT #4](04-onion-routing.md), el tráfico sintético cuidadosamente diseñado estadísticamente puede contribuir a fortalecer aún más la privacidad de los participantes en la red.
 
-Limited precautions are recommended against `ping` flooding, however some
-latitude is given because of network delays. Note that there are other methods
-of incoming traffic flooding (e.g. sending _odd_ unknown message types, or padding
-every message maximally).
+Se recomiendan precauciones limitadas contra inundaciones de `ping`, sin embargo, se otorga cierta flexibilidad debido a las demoras en la red. Tenga en cuenta que existen otros métodos de inundación de tráfico entrante (por ejemplo, enviar tipos de mensajes desconocidos _impares_ o llenar al máximo cada mensaje).
 
-Finally, the usage of periodic `ping` messages serves to promote frequent key
-rotations as specified within [BOLT #8](08-transport.md).
+Finalmente, el uso periódico de mensajes `ping` sirve para promover rotaciones de claves frecuentes, como se especifica en [BOLT #8](08-transport.md).
 
-## Appendix A: BigSize Test Vectors
+## Apéndice A: Vectores de Prueba BigSize
 
-The following test vectors can be used to assert the correctness of a BigSize
-implementation used in the TLV format. The format is identical to the
-CompactSize encoding used in bitcoin, but replaces the little-endian encoding of
-multi-byte values with big-endian.
+Los siguientes vectores de prueba se pueden utilizar para verificar la corrección de una implementación de BigSize utilizada en el formato TLV. El formato es idéntico a la codificación CompactSize utilizada en Bitcoin, pero reemplaza la codificación de valores multibyte de little-endian con big-endian.
 
-Values encoded with BigSize will produce an encoding of either 1, 3, 5, or 9
-bytes depending on the size of the integer. The encoding is a piece-wise
-function that takes a `uint64` value `x` and produces:
+Los valores codificados con BigSize producirán una codificación de 1, 3, 5 o 9 bytes, dependiendo del tamaño del entero. La codificación es una función dividida en piezas que toma un valor `uint64` `x` y produce:
 ```
-        uint8(x)                if x < 0xfd
-        0xfd + be16(uint16(x))  if x < 0x10000
-        0xfe + be32(uint32(x))  if x < 0x100000000
-        0xff + be64(x)          otherwise.
+        uint8(x)                si x < 0xfd
+        0xfd + be16(uint16(x))  si x < 0x10000
+        0xfe + be32(uint32(x))  si x < 0x100000000
+        0xff + be64(x)          en otros casos.
 ```
+Aquí, `+` denota concatenación y `be16`, `be32` y `be64` producen una codificación big-endian de la entrada para enteros de 16, 32 y 64 bits, respectivamente.
 
-Here `+` denotes concatenation and `be16`, `be32`, and `be64` produce a
-big-endian encoding of the input for 16, 32, and 64-bit integers, respectively.
-
-A value is said to be _minimally encoded_ if it could not be encoded using
-fewer bytes. For example, a BigSize encoding that occupies 5 bytes
-but whose value is less than 0x10000 is not minimally encoded. All values
-decoded with BigSize should be checked to ensure they are minimally encoded.
+Se dice que un valor está _minimamente codificado_ si no podría ser codificado usando menos bytes. Por ejemplo, una codificación de BigSize que ocupa 5 bytes pero cuyo valor es menor que 0x10000 no está codificada de manera mínima. Todos los valores decodificados con BigSize deben verificarse para asegurarse de que estén codificados de manera mínima.
 
 <!-- omit in toc -->
-### BigSize Decoding Tests
+### Pruebas de Decodificación BigSize
 
-The following is an example of how to execute the BigSize decoding tests.
+Lo siguiente es un ejemplo de cómo ejecutar las pruebas de decodificación de BigSize.
 ```golang
 func testReadBigSize(t *testing.T, test bigSizeTest) {
         var buf [8]byte 
@@ -495,7 +421,7 @@ func testReadBigSize(t *testing.T, test bigSizeTest) {
                         test.ExpErr, err)
         }
 
-        // If we expected a decoding error, there's no point checking the value.
+        // Si esperamos un error de decodificación, no tiene sentido verificar el valor.
         if test.ExpErr != "" {
                 return
         }
@@ -506,7 +432,7 @@ func testReadBigSize(t *testing.T, test bigSizeTest) {
 }
 ```
 
-A correct implementation should pass against these test vectors:
+Una implementación correcta debería pasar estas pruebas con estos vectores de prueba:
 ```json
 [
     {
@@ -613,9 +539,9 @@ A correct implementation should pass against these test vectors:
 ```
 
 <!-- omit in toc -->
-### BigSize Encoding Tests
+### Pruebas de Programación BigSize
 
-The following is an example of how to execute the BigSize encoding tests.
+Lo siguiente es un ejemplo de cómo ejecutar las pruebas de programación de BigSize.
 ```golang
 func testWriteBigSize(t *testing.T, test bigSizeTest) {
         var (
@@ -635,7 +561,7 @@ func testWriteBigSize(t *testing.T, test bigSizeTest) {
 }
 ```
 
-A correct implementation should pass against the following test vectors:
+Una correcta implementación debe pasar perfectamente los siguientes vectores de prueba:
 ```json
 [
     {
@@ -681,11 +607,11 @@ A correct implementation should pass against the following test vectors:
 ]
 ```
 
-## Appendix B: Type-Length-Value Test Vectors
+## Apéndice B: Vectores de Test Tipo-Longitud-Valor
 
-The following tests assume that two separate TLV namespaces exist: n1 and n2.
+Las siguientes pruebas asumen que existen dos espacios de nombres TLV separados: n1 y n2.
 
-The n1 namespace supports the following TLV types:
+El espacio de nombres n1 admite los siguientes tipos TLV:
 
 1. `tlv_stream`: `n1`
 2. types:
@@ -704,7 +630,7 @@ The n1 namespace supports the following TLV types:
    2. data:
      * [`u16`:`cltv_delta`]
 
-The n2 namespace supports the following TLV types:
+El espacio de nombres n2 admite los siguientes tipos TLV:
 
 1. `tlv_stream`: `n2`
 2. types:
@@ -716,9 +642,9 @@ The n2 namespace supports the following TLV types:
      * [`tu32`:`cltv_expiry`]
 
 <!-- omit in toc -->
-### TLV Decoding Failures
+### Fallos en la Decodificación TLV
 
-The following TLV streams in any namespace should trigger a decoding failure:
+Las siguientes secuencias TLV en cualquier espacio de nombres deberían desencadenar un fallo de decodificación:
 
 1. Invalid stream: 0xfd
 2. Reason: type truncated
@@ -747,8 +673,7 @@ The following TLV streams in any namespace should trigger a decoding failure:
 1. Invalid stream: 0x0f fd0201 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 2. Reason: value truncated
 
-The following TLV streams in either namespace should trigger a
-decoding failure:
+Las siguientes secuencias TLV en cualquiera de los espacios de nombres, deberían desencadenar un fallo en la decodificación:
 
 1. Invalid stream: 0x12 00
 2. Reason: unknown even type.
@@ -762,8 +687,7 @@ decoding failure:
 1. Invalid stream: 0xff0100000000000002 00
 2. Reason: unknown even type.
 
-The following TLV streams in namespace `n1` should trigger a decoding
-failure:
+Las siguientes secuencias TLV en el espacio de nombres `n1` deberían desencadenar un fallo en la decodificación:
 
 1. Invalid stream: 0x01 09 ffffffffffffffffff
 2. Reason: greater than encoding length for `n1`s `tlv1`.
@@ -826,10 +750,9 @@ failure:
 2. Reason: unknown even field for `n1`s namespace.
 
 <!-- omit in toc -->
-### TLV Decoding Successes
+### Éxitos en la Decodificación TLV
 
-The following TLV streams in either namespace should correctly decode,
-and be ignored:
+Las siguientes secuencias TLV en cualquiera de los espacios de nombres deberían decodificarse correctamente y ser ignoradas:
 
 1. Valid stream: 0x
 2. Explanation: empty message
@@ -852,8 +775,7 @@ and be ignored:
 1. Valid stream: 0xff0200000000000001 00
 2. Explanation: Unknown odd type.
 
-The following TLV streams in `n1` namespace should correctly decode,
-with the values given here:
+Las siguientes secuencias TLV en el espacio de nombres `n1` deberían decodificarse correctamente, con los valores proporcionados aquí:
 
 1. Valid stream: 0x01 00
 2. Values: `tlv1` `amount_msat`=0
@@ -892,16 +814,13 @@ with the values given here:
 2. Values: `tlv4` `cltv_delta`=550
 
 <!-- omit in toc -->
-### TLV Stream Decoding Failure
+### Fallo en la Decodificación de Secuencia TLV
 
-Any appending of an invalid stream to a valid stream should trigger
-a decoding failure.
+La adición de una secuencia inválida a una secuencia válida debería desencadenar un fallo en la decodificación.
 
-Any appending of a higher-numbered valid stream to a lower-numbered
-valid stream should not trigger a decoding failure.
+La adición de una secuencia válida de un número más alto a una secuencia válida de un número más bajo no debería desencadenar un fallo en la decodificación.
 
-In addition, the following TLV streams in namespace `n1` should
-trigger a decoding failure:
+Además, las siguientes secuencias TLV en el espacio de nombres `n1` deberían desencadenar un fallo en la decodificación:
 
 1. Invalid stream: 0x02 08 0000000000000226 01 01 2a
 2. Reason: valid TLV records but invalid ordering
@@ -915,42 +834,37 @@ trigger a decoding failure:
 1. Invalid stream: 0x1f 00 1f 01 2a
 2. Reason: duplicate TLV type (ignored)
 
-The following TLV stream in namespace `n2` should trigger a decoding
-failure:
+La siguiente secuencia TLV en el espacio de nombres `n2` debería desencadenar un fallo en la decodificación:
 
 1. Invalid stream: 0xffffffffffffffffff 00 00 00
 2. Reason: valid TLV records but invalid ordering
 
-## Appendix C: Message Extension
+## Apéndice C: Extensión de Mensaje
 
-This section contains examples of valid and invalid extensions on the `init`
-message. The base `init` message (without extensions) for these examples is
-`0x001000000000` (all features turned off).
+Esta sección contiene ejemplos de extensiones válidas e inválidas en el mensaje `init`. El mensaje `init` base (sin extensiones) para estos ejemplos es `0x001000000000` (todas las funciones desactivadas).
 
-The following `init` messages are valid:
+Los siguientes mensajes `init` son válidos:
 
-- `0x001000000000`: no extension provided
-- `0x001000000000c9012acb0104`: the extension contains two unknown _odd_ TLV records (with types `0xc9` and `0xcb`)
+- `0x001000000000`: no se proporciona ninguna extensión.
+- `0x001000000000c9012acb0104`: la extensión contiene dos registros TLV desconocidos _impares_ (con tipos `0xc9` y `0xcb`).
 
-The following `init` messages are invalid:
+Los siguientes mensajes `init` son inválidos:
 
-- `0x00100000000001`: the extension is present but truncated
-- `0x001000000000ca012a`: the extension contains unknown _even_ TLV records (assuming that TLV type `0xca` is unknown)
-- `0x001000000000c90101c90102`: the extension TLV stream is invalid (duplicate TLV record type `0xc9`)
+- `0x00100000000001`: la extensión está presente pero truncada.
+- `0x001000000000ca012a`: la extensión contiene registros TLV desconocidos _pares_ (asumiendo que el tipo TLV `0xca` es desconocido).
+- `0x001000000000c90101c90102`: la secuencia TLV de la extensión es inválida (duplicación del tipo de registro TLV `0xc9`).
 
-Note that when messages are signed, the _extension_ is part of the signed bytes.
-Nodes should store the _extension_ bytes even if they don't understand them to
-be able to correctly verify signatures.
+Tenga en cuenta que cuando los mensajes están firmados, la _extensión_ forma parte de los bytes firmados. Los nodos deben almacenar los bytes de _extensión_ incluso si no los comprenden para poder verificar correctamente las firmas.
 
-## Acknowledgments
+## Agradecimientos
 
 [ TODO: (roasbeef); fin ]
 
-## References
+## Referencias
 
 1. <a id="reference-1">http://www.unicode.org/charts/PDF/U2600.pdf</a>
 
-## Authors
+## Autores
 
 [ FIXME: Insert Author List ]
 
