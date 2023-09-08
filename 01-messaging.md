@@ -678,6 +678,7 @@ Las siguientes secuencias TLV en cualquiera de los espacios de nombres, debería
 1. Invalid stream: 0x12 00
 2. Reason: unknown even type.
 
+
 1. Invalid stream: 0xfd0102 00
 2. Reason: unknown even type.
 
