@@ -648,7 +648,7 @@ Las siguientes secuencias TLV en cualquier espacio de nombres deberían desencad
 
 1. Invalid stream: 0xfd
 2. Reason: type truncated
-
+<!-- -->
 1. Invalid stream: 0xfd01
 2. Reason: type truncated
 
@@ -675,9 +675,8 @@ Las siguientes secuencias TLV en cualquier espacio de nombres deberían desencad
 
 Las siguientes secuencias TLV en cualquiera de los espacios de nombres, deberían desencadenar un fallo en la decodificación:
 
-   1. Invalid stream: 0x12 00
-   2. Reason: unknown even type.
-
+1. Invalid stream: 0x12 00
+2. Reason: unknown even type.
 
 1. Invalid stream: 0xfd0102 00
 2. Reason: unknown even type.
