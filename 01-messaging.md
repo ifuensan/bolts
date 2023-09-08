@@ -651,104 +651,104 @@ Las siguientes secuencias TLV en cualquier espacio de nombres deberían desencad
 <!-- -->
 1. Invalid stream: 0xfd01
 2. Reason: type truncated
-
+<!-- -->
 1. Invalid stream: 0xfd0001 00
 2. Reason: not minimally encoded type
-
+<!-- -->
 1. Invalid stream: 0xfd0101
 2. Reason: missing length
-
+<!-- -->
 1. Invalid stream: 0x0f fd
 2. Reason: (length truncated)
-
+<!-- -->
 1. Invalid stream: 0x0f fd26
 2. Reason: (length truncated)
-
+<!-- -->
 1. Invalid stream: 0x0f fd2602
 2. Reason: missing value
-
+<!-- -->
 1. Invalid stream: 0x0f fd0001 00
 2. Reason: not minimally encoded length
-
+<!-- -->
 1. Invalid stream: 0x0f fd0201 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 2. Reason: value truncated
-
+<!-- -->
 Las siguientes secuencias TLV en cualquiera de los espacios de nombres, deberían desencadenar un fallo en la decodificación:
 
 1. Invalid stream: 0x12 00
 2. Reason: unknown even type.
-
+<!-- -->
 1. Invalid stream: 0xfd0102 00
 2. Reason: unknown even type.
-
+<!-- -->
 1. Invalid stream: 0xfe01000002 00
 2. Reason: unknown even type.
-
+<!-- -->
 1. Invalid stream: 0xff0100000000000002 00
 2. Reason: unknown even type.
-
+<!-- -->
 Las siguientes secuencias TLV en el espacio de nombres `n1` deberían desencadenar un fallo en la decodificación:
 
 1. Invalid stream: 0x01 09 ffffffffffffffffff
 2. Reason: greater than encoding length for `n1`s `tlv1`.
-
+<!-- -->
 1. Invalid stream: 0x01 01 00
 2. Reason: encoding for `n1`s `tlv1`s `amount_msat` is not minimal
-
+<!-- -->
 1. Invalid stream: 0x01 02 0001
 2. Reason: encoding for `n1`s `tlv1`s `amount_msat` is not minimal
-
+<!-- -->
 1. Invalid stream: 0x01 03 000100
 2. Reason: encoding for `n1`s `tlv1`s `amount_msat` is not minimal
-
+<!-- -->
 1. Invalid stream: 0x01 04 00010000
 2. Reason: encoding for `n1`s `tlv1`s `amount_msat` is not minimal
-
+<!-- -->
 1. Invalid stream: 0x01 05 0001000000
 2. Reason: encoding for `n1`s `tlv1`s `amount_msat` is not minimal
-
+<!-- -->
 1. Invalid stream: 0x01 06 000100000000
 2. Reason: encoding for `n1`s `tlv1`s `amount_msat` is not minimal
-
+<!-- -->
 1. Invalid stream: 0x01 07 00010000000000
 2. Reason: encoding for `n1`s `tlv1`s `amount_msat` is not minimal
-
+<!-- -->
 1. Invalid stream: 0x01 08 0001000000000000
 2. Reason: encoding for `n1`s `tlv1`s `amount_msat` is not minimal
-
+<!-- -->
 1. Invalid stream: 0x02 07 01010101010101
 2. Reason: less than encoding length for `n1`s `tlv2`.
-
+<!-- -->
 1. Invalid stream: 0x02 09 010101010101010101
 2. Reason: greater than encoding length for `n1`s `tlv2`.
-
+<!-- -->
 1. Invalid stream: 0x03 21 023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb
 2. Reason: less than encoding length for `n1`s `tlv3`.
-
+<!-- -->
 1. Invalid stream: 0x03 29 023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb0000000000000001
 2. Reason: less than encoding length for `n1`s `tlv3`.
-
+<!-- -->
 1. Invalid stream: 0x03 30 023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb000000000000000100000000000001
 2. Reason: less than encoding length for `n1`s `tlv3`.
-
+<!-- -->
 1. Invalid stream: 0x03 31 043da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb00000000000000010000000000000002
 2. Reason: `n1`s `node_id` is not a valid point.
-
+<!-- -->
 1. Invalid stream: 0x03 32 023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb0000000000000001000000000000000001
 2. Reason: greater than encoding length for `n1`s `tlv3`.
-
+<!-- -->
 1. Invalid stream: 0xfd00fe 00
 2. Reason: less than encoding length for `n1`s `tlv4`.
-
+<!-- -->
 1. Invalid stream: 0xfd00fe 01 01
 2. Reason: less than encoding length for `n1`s `tlv4`.
-
+<!-- -->
 1. Invalid stream: 0xfd00fe 03 010101
 2. Reason: greater than encoding length for `n1`s `tlv4`.
-
+<!-- -->
 1. Invalid stream: 0x00 00
 2. Reason: unknown even field for `n1`s namespace.
-
+<!-- -->
 <!-- omit in toc -->
 ### Éxitos en la Decodificación TLV
 
@@ -756,63 +756,63 @@ Las siguientes secuencias TLV en cualquiera de los espacios de nombres deberían
 
 1. Valid stream: 0x
 2. Explanation: empty message
-
+<!-- -->
 1. Valid stream: 0x21 00
 2. Explanation: Unknown odd type.
-
+<!-- -->
 1. Valid stream: 0xfd0201 00
 2. Explanation: Unknown odd type.
-
+<!-- -->
 1. Valid stream: 0xfd00fd 00
 2. Explanation: Unknown odd type.
-
+<!-- -->
 1. Valid stream: 0xfd00ff 00
 2. Explanation: Unknown odd type.
-
+<!-- -->
 1. Valid stream: 0xfe02000001 00
 2. Explanation: Unknown odd type.
-
+<!-- -->
 1. Valid stream: 0xff0200000000000001 00
 2. Explanation: Unknown odd type.
-
+<!-- -->
 Las siguientes secuencias TLV en el espacio de nombres `n1` deberían decodificarse correctamente, con los valores proporcionados aquí:
 
 1. Valid stream: 0x01 00
 2. Values: `tlv1` `amount_msat`=0
-
+<!-- -->
 1. Valid stream: 0x01 01 01
 2. Values: `tlv1` `amount_msat`=1
-
+<!-- -->
 1. Valid stream: 0x01 02 0100
 2. Values: `tlv1` `amount_msat`=256
-
+<!-- -->
 1. Valid stream: 0x01 03 010000
 2. Values: `tlv1` `amount_msat`=65536
-
+<!-- -->
 1. Valid stream: 0x01 04 01000000
 2. Values: `tlv1` `amount_msat`=16777216
-
+<!-- -->
 1. Valid stream: 0x01 05 0100000000
 2. Values: `tlv1` `amount_msat`=4294967296
-
+<!-- -->
 1. Valid stream: 0x01 06 010000000000
 2. Values: `tlv1` `amount_msat`=1099511627776
-
+<!-- -->
 1. Valid stream: 0x01 07 01000000000000
 2. Values: `tlv1` `amount_msat`=281474976710656
-
+<!-- -->
 1. Valid stream: 0x01 08 0100000000000000
 2. Values: `tlv1` `amount_msat`=72057594037927936
-
+<!-- -->
 1. Valid stream: 0x02 08 0000000000000226
 2. Values: `tlv2` `scid`=0x0x550
-
+<!-- -->
 1. Valid stream: 0x03 31 023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb00000000000000010000000000000002
 2. Values: `tlv3` `node_id`=023da092f6980e58d2c037173180e9a465476026ee50f96695963e8efe436f54eb `amount_msat_1`=1 `amount_msat_2`=2
-
+<!-- -->
 1. Valid stream: 0xfd00fe 02 0226
 2. Values: `tlv4` `cltv_delta`=550
-
+<!-- -->
 <!-- omit in toc -->
 ### Fallo en la Decodificación de Secuencia TLV
 
@@ -824,21 +824,21 @@ Además, las siguientes secuencias TLV en el espacio de nombres `n1` deberían d
 
 1. Invalid stream: 0x02 08 0000000000000226 01 01 2a
 2. Reason: valid TLV records but invalid ordering
-
+<!-- -->
 1. Invalid stream: 0x02 08 0000000000000231 02 08 0000000000000451
 2. Reason: duplicate TLV type
-
+<!-- -->
 1. Invalid stream: 0x1f 00 0f 01 2a
 2. Reason: valid (ignored) TLV records but invalid ordering
-
+<!-- -->
 1. Invalid stream: 0x1f 00 1f 01 2a
 2. Reason: duplicate TLV type (ignored)
-
+<!-- -->
 La siguiente secuencia TLV en el espacio de nombres `n2` debería desencadenar un fallo en la decodificación:
-
+<!-- -->
 1. Invalid stream: 0xffffffffffffffffff 00 00 00
 2. Reason: valid TLV records but invalid ordering
-
+<!-- -->
 ## Apéndice C: Extensión de Mensaje
 
 Esta sección contiene ejemplos de extensiones válidas e inválidas en el mensaje `init`. El mensaje `init` base (sin extensiones) para estos ejemplos es `0x001000000000` (todas las funciones desactivadas).
