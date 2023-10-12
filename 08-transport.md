@@ -127,7 +127,7 @@ Antes del comienzo del Primer Acto, ambos lados inicializan su estado por sesió
  3. `h = SHA-256(h || prologue)`
     * donde `prologue` es la cadena ASCII: `lightning`
 
-Como paso final, ambas partes mezclan la clave pública del respondedor en el resumen del apretón de manos:
+Como paso final, ambas partes mezclan la clave pública del respondedor en el resumen del `Handshake`:
 
  * El nodo iniciador mezcla la clave pública estática del nodo que responde serializada en el formato comprimido de Bitcoin:
    * `h = SHA-256(h || rs.pub.serializeCompressed())`

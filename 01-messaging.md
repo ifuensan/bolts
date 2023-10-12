@@ -4,7 +4,7 @@
 <!-- omit in toc -->
 ## Visión General
 
-Este protocolo asume un mecanismo subyacente de transporte autenticado y ordenado que se encarga de enmarcar mensajes individuales. 
+Este protocolo asume un mecanismo subyacente de transporte autenticado y ordenado, que se encarga de enmarcar mensajes individuales. 
 [BOLT #8](08-transport.md) especifica la capa de transporte canónico utilizada en Lightning, aunque puede ser reemplazado por cualquier transporte que cumpla con las garantías anteriores.
 
 El puerto TCP predeterminado depende de la red utilizada. Las redes más comunes son:
@@ -541,7 +541,7 @@ Una implementación correcta debería pasar estas pruebas con estos vectores de 
 <!-- omit in toc -->
 ### Pruebas de Programación BigSize
 
-Lo siguiente es un ejemplo de cómo ejecutar las pruebas de programación de BigSize.
+El siguiente, es un ejemplo de cómo ejecutar las pruebas de programación de BigSize.
 ```golang
 func testWriteBigSize(t *testing.T, test bigSizeTest) {
         var (
@@ -609,7 +609,7 @@ Una correcta implementación debe pasar perfectamente los siguientes vectores de
 
 ## Apéndice B: Vectores de Test Tipo-Longitud-Valor
 
-Las siguientes pruebas asumen que existen dos espacios de nombres TLV separados: n1 y n2.
+Las siguientes pruebas, asumen que existen dos espacios de nombres TLV separados: n1 y n2.
 
 El espacio de nombres n1 admite los siguientes tipos TLV:
 
@@ -673,7 +673,7 @@ Las siguientes secuencias TLV en cualquier espacio de nombres deberían desencad
 1. Invalid stream: 0x0f fd0201 000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 2. Reason: value truncated
 <!-- -->
-Las siguientes secuencias TLV en cualquiera de los espacios de nombres, deberían desencadenar un fallo en la decodificación:
+Las siguientes secuencias TLV, en cualquiera de los espacios de nombres, deberían desencadenar un fallo en la decodificación:
 
 1. Invalid stream: 0x12 00
 2. Reason: unknown even type.
@@ -687,7 +687,7 @@ Las siguientes secuencias TLV en cualquiera de los espacios de nombres, debería
 1. Invalid stream: 0xff0100000000000002 00
 2. Reason: unknown even type.
 <!-- -->
-Las siguientes secuencias TLV en el espacio de nombres `n1` deberían desencadenar un fallo en la decodificación:
+Las siguientes secuencias TLV, en el espacio de nombres `n1` deberían desencadenar un fallo en la decodificación:
 
 1. Invalid stream: 0x01 09 ffffffffffffffffff
 2. Reason: greater than encoding length for `n1`s `tlv1`.
@@ -752,7 +752,7 @@ Las siguientes secuencias TLV en el espacio de nombres `n1` deberían desencaden
 <!-- omit in toc -->
 ### Éxitos en la Decodificación TLV
 
-Las siguientes secuencias TLV en cualquiera de los espacios de nombres deberían decodificarse correctamente y ser ignoradas:
+Las siguientes secuencias TLV, en cualquiera de los espacios de nombres deberían decodificarse correctamente y ser ignoradas:
 
 1. Valid stream: 0x
 2. Explanation: empty message
@@ -775,7 +775,7 @@ Las siguientes secuencias TLV en cualquiera de los espacios de nombres deberían
 1. Valid stream: 0xff0200000000000001 00
 2. Explanation: Unknown odd type.
 <!-- -->
-Las siguientes secuencias TLV en el espacio de nombres `n1` deberían decodificarse correctamente, con los valores proporcionados aquí:
+Las siguientes secuencias TLV en el espacio de nombres `n1`, deberían decodificarse correctamente, con los valores proporcionados aquí:
 
 1. Valid stream: 0x01 00
 2. Values: `tlv1` `amount_msat`=0
@@ -816,9 +816,9 @@ Las siguientes secuencias TLV en el espacio de nombres `n1` deberían decodifica
 <!-- omit in toc -->
 ### Fallo en la Decodificación de Secuencia TLV
 
-La adición de una secuencia inválida a una secuencia válida debería desencadenar un fallo en la decodificación.
+La adición de una secuencia inválida a una secuencia válida, debería desencadenar un fallo en la decodificación.
 
-La adición de una secuencia válida de un número más alto a una secuencia válida de un número más bajo no debería desencadenar un fallo en la decodificación.
+La adición de una secuencia válida, de un número más alto a una secuencia válida de un número más bajo, no debería desencadenar un fallo en la decodificación.
 
 Además, las siguientes secuencias TLV en el espacio de nombres `n1` deberían desencadenar un fallo en la decodificación:
 
@@ -834,7 +834,7 @@ Además, las siguientes secuencias TLV en el espacio de nombres `n1` deberían d
 1. Invalid stream: 0x1f 00 1f 01 2a
 2. Reason: duplicate TLV type (ignored)
 <!-- -->
-La siguiente secuencia TLV en el espacio de nombres `n2` debería desencadenar un fallo en la decodificación:
+La siguiente secuencia TLV en el espacio de nombres `n2`, debería desencadenar un fallo en la decodificación:
 <!-- -->
 1. Invalid stream: 0xffffffffffffffffff 00 00 00
 2. Reason: valid TLV records but invalid ordering

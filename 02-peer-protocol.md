@@ -588,46 +588,48 @@ El nodo emisor:
   - DEBE establecer `signature` a la firma de Bitcoin de la transacción de cierre, como se especifica en [BOLT #3](03-transactions.md#closing-transaction).
 
 El nodo receptor:
-  - if the `signature` is not valid for either variant of closing transaction
-  specified in [BOLT #3](03-transactions.md#closing-transaction) OR non-compliant with LOW-S-standard rule<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
-    - MUST send a `warning` and close the connection, or send an
-      `error` and fail the channel.
-  - if `fee_satoshis` is equal to its previously sent `fee_satoshis`:
-    - SHOULD sign and broadcast the final closing transaction.
-    - MAY close the connection.
-  - if `fee_satoshis` matches its previously sent `fee_range`:
-    - SHOULD use `fee_satoshis` to sign and broadcast the final closing transaction
-    - SHOULD reply with a `closing_signed` with the same `fee_satoshis` value if it is different from its previously sent `fee_satoshis`
-    - MAY close the connection.
-  - if the message contains a `fee_range`:
-    - if there is no overlap between that and its own `fee_range`:
-      - SHOULD send a warning
-      - MUST fail the channel if it doesn't receive a satisfying `fee_range` after a reasonable amount of time
-    - otherwise:
-      - if it is the funder:
-        - if `fee_satoshis` is not in the overlap between the sent and received `fee_range`:
-          - MUST fail the channel
-        - otherwise:
-          - MUST reply with the same `fee_satoshis`.
-      - otherwise (it is not the funder):
-        - if it has already sent a `closing_signed`:
-          - if `fee_satoshis` is not the same as the value it sent:
-            - MUST fail the channel
-        - otherwise:
-          - MUST propose a `fee_satoshis` in the overlap between received and (about-to-be) sent `fee_range`.
-  - otherwise, if `fee_satoshis` is not strictly between its last-sent `fee_satoshis`
-  and its previously-received `fee_satoshis`, UNLESS it has since reconnected:
-    - SHOULD send a `warning` and close the connection, or send an
-      `error` and fail the channel.
-  - otherwise, if the receiver agrees with the fee:
-    - SHOULD reply with a `closing_signed` with the same `fee_satoshis` value.
-  - otherwise:
-    - MUST propose a value "strictly between" the received `fee_satoshis`
-    and its previously-sent `fee_satoshis`.
+  - si la `signature` no es válida para ninguna de las variantes de la transacción de cierre
+    especificadas en [BOLT #3](03-transactions.md#closing-transaction) O no cumple con la regla LOW-S-standard<sup>[LOWS](https://github.com/bitcoin/bitcoin/pull/6769)</sup>:
+    - DEBE enviar un `warning` y cerrar la conexión, o enviar un
+      `error` y fallar el canal.
+  - si `fee_satoshis` es igual a su `fee_satoshis` enviado previamente:
+    - DEBERÍA firmar y difundir la transacción de cierre final.
+    - PUEDE cerrar la conexión.
+  - si `fee_satoshis` coincide con su `fee_range` enviado previamente:
+    - DEBERÍA usar `fee_satoshis` para firmar y difundir la transacción de cierre final
+    - DEBERÍA responder con un `closing_signed` con el mismo valor de `fee_satoshis` si es diferente de su `fee_satoshis` enviado previamente
+    - PUEDE cerrar la conexión.
+  - si el mensaje contiene un `fee_range`:
+    - si no hay superposición entre eso y su propio `fee_range`:
+      - DEBERÍA enviar una advertencia
+      - DEBE fallar el canal si no recibe un `fee_range` satisfactorio después de un tiempo razonable
+    - de lo contrario:
+      - si es el financiador:
+        - si `fee_satoshis` no está en la superposición entre el rango de `fee` enviado y recibido:
+          - DEBE fallar el canal
+        - de lo contrario:
+          - DEBE responder con el mismo `fee_satoshis`.
+      - de lo contrario (no es el financiador):
+        - si ya ha enviado un `closing_signed`:
+          - si `fee_satoshis` no es el mismo que el valor que envió:
+            - DEBE fallar el canal
+          - de lo contrario:
+            - DEBE proponer un `fee_satoshis` en la superposición entre el rango de `fee` recibido y el rango de `fee` que está a punto de enviar.
+  - de lo contrario, si `fee_satoshis` no está estrictamente entre su `fee_satoshis` enviado por última vez
+  y su `fee_satoshis` recibido previamente, A MENOS QUE se haya vuelto a conectar desde entonces:
+    - DEBERÍA enviar un `warning` y cerrar la conexión, o enviar un
+      `error` y fallar el canal.
+  - de lo contrario, si el receptor está de acuerdo con la tarifa:
+    - DEBERÍA responder con un `closing_signed` con el mismo valor de `fee_satoshis`.
+  - de lo contrario:
+    - DEBE proponer un valor "estrictamente entre" el `fee_satoshis` recibido
+    y su `fee_satoshis` enviado previamente.
 
-The receiving node:
-  - if one of the outputs in the closing transaction is below the dust limit for its `scriptpubkey` (see [BOLT 3](03-transactions.md#dust-limits)):
-    - MUST fail the channel
+
+El nodo receptor:
+  - si una de las salidas en la transacción de cierre está por debajo del límite de polvo para su `scriptpubkey` (ver [BOLT 3](03-transactions.md#dust-limits)):
+    - DEBE fallar el canal
+
 
 <!-- omit in toc -->
 #### Racional
@@ -689,17 +691,18 @@ transacción de compromiso anterior **sin/con** se ha revocado, O
 #### Requisitos
 
 Un nodo:
-  - until an incoming HTLC has been irrevocably committed:
-    - MUST NOT offer the corresponding outgoing HTLC (`update_add_htlc`) in response to that incoming HTLC.
-  - until the removal of an outgoing HTLC is irrevocably committed, OR until the outgoing on-chain HTLC output has been spent via the HTLC-timeout transaction (with sufficient depth):
-    - MUST NOT fail the incoming HTLC (`update_fail_htlc`) that corresponds
-to that outgoing HTLC.
-  - once the `cltv_expiry` of an incoming HTLC has been reached, OR if `cltv_expiry` minus `current_height` is less than `cltv_expiry_delta` for the corresponding outgoing HTLC:
-    - MUST fail that incoming HTLC (`update_fail_htlc`).
-  - if an incoming HTLC's `cltv_expiry` is unreasonably far in the future:
-    - SHOULD fail that incoming HTLC (`update_fail_htlc`).
-  - upon receiving an `update_fulfill_htlc` for an outgoing HTLC, OR upon discovering the `payment_preimage` from an on-chain HTLC spend:
-    - MUST fulfill the incoming HTLC that corresponds to that outgoing HTLC.
+  - hasta que un HTLC entrante se haya persistido de forma irrevocable:
+    - NO DEBE ofrecer el HTLC saliente correspondiente (`update_add_htlc`) en respuesta a ese HTLC entrante.
+  - hasta que la eliminación de un HTLC saliente se haya comprometido de forma irrevocable, O hasta que la salida saliente en cadena del HTLC se haya gastado mediante la transacción HTLC-timeout (con suficiente profundidad):
+    - NO DEBE fallar el HTLC entrante correspondiente (`update_fail_htlc`) a ese HTLC saliente.
+  - una vez que se haya alcanzado el `cltv_expiry` de un HTLC entrante, O si `cltv_expiry` menos `current_height` es menor que `cltv_expiry_delta` para el HTLC saliente correspondiente:
+    - DEBE fallar ese HTLC entrante (`update_fail_htlc`).
+  - si el `cltv_expiry` de un HTLC entrante está irrazonablemente lejos en el futuro:
+    - DEBERÍA fallar ese HTLC entrante (`update_fail_htlc`).
+  - al recibir un `update_fulfill_htlc` para un HTLC saliente, O al descubrir el `payment_preimage` de un gasto en cadena de HTLC:
+    - DEBE cumplir con el HTLC entrante que corresponde a ese HTLC saliente.
+
+
 
 <!-- omit in toc -->
 #### Racional
@@ -755,20 +758,21 @@ Hay cuatro valores que deben derivarse:
 <!-- omit in toc -->
 #### Requisitos
 
-An offering node:
-  - MUST estimate a timeout deadline for each HTLC it offers.
-  - MUST NOT offer an HTLC with a timeout deadline before its `cltv_expiry`.
-  - if an HTLC which it offered is in either node's current commitment transaction, AND is past this timeout deadline:
-    - SHOULD send an `error` to the receiving peer (if connected).
-    - MUST fail the channel.
+Un nodo que ofrece:
+  - DEBE estimar una fecha límite de tiempo para cada HTLC que ofrece.
+  - NO DEBE ofrecer un HTLC con una fecha límite de tiempo anterior a su `cltv_expiry`.
+  - si un HTLC que ofreció está en la transacción de compromiso actual de cualquiera de los nodos, Y ha pasado esta fecha límite de tiempo:
+    - DEBERÍA enviar un `error` al par receptor (si está conectado).
+    - DEBE fallar el canal.
 
-A fulfilling node:
-  - for each HTLC it is attempting to fulfill:
-    - MUST estimate a fulfillment deadline.
-  - MUST fail (and not forward) an HTLC whose fulfillment deadline is already past.
-  - if an HTLC it has fulfilled is in either node's current commitment transaction, AND is past this fulfillment deadline:
-    - SHOULD send an `error` to the offering peer (if connected).
-    - MUST fail the channel.
+Un nodo que cumple:
+  - para cada HTLC que intenta cumplir:
+    - DEBE estimar una fecha límite para el cumplimiento.
+  - DEBE fallar (y no reenviar) un HTLC cuya fecha límite de cumplimiento ya haya pasado.
+  - si un HTLC que ha cumplido está en la transacción de compromiso actual de cualquiera de los nodos, Y ha pasado esta fecha límite de cumplimiento:
+    - DEBERÍA enviar un `error` al par que ofrece (si está conectado).
+    - DEBE fallar el canal.
+
 
 ### Añadiendo un HTLC: `update_add_htlc`
 
@@ -853,17 +857,17 @@ The `onion_routing_packet` contains an obfuscated list of hops and instructions 
 <!-- omit in toc -->
 #### Racional
 
-Las cantidades no válidas son una clara violación del protocolo e indican un desglose.
+Las cantidades no válidas, son una clara violación del protocolo e indican un desglose.
 
-Si un nodo no aceptaba múltiples HTLC con el mismo hash de pago, unel atacante podría sondear para ver si un nodo tenía un HTLC existente. Esterequisito, para hacer frente a los duplicados, conduce al uso de un separadoidentificador; se supone que un contador de 64 bits nunca se ajusta.
+Si un nodo no aceptaba múltiples HTLC con el mismo hash de pago, un atacante podría sondear para ver si un nodo tenía un HTLC existente. Este requisito, para hacer frente a los duplicados, conduce al uso de un identificador separado; se supone que un contador de 64 bits nunca se ajusta.
 
-Las retransmisiones de actualizaciones no reconocidas están explícitamente permitidas parafines de reconexión; Permitirlos en otros momentos simplifica lacódigo del destinatario (aunque una verificación estricta puede ayudar a la depuración).
+Las retransmisiones de actualizaciones no reconocidas están explícitamente permitidas para fines de reconexión; Permitirlos en otros momentos simplifica el código del destinatario (aunque una verificación estricta puede ayudar a la depuración).
 
-`max_accepted_htlcs` está limitado a 483 para garantizar que, incluso si ambospartes envían el número máximo de HTLC, el mensaje `commitment_signed`todavía estar por debajo del tamaño máximo de mensaje. También asegura queuna sola transacción de penalización puede gastar toda la transacción de compromiso,según lo calculado en [BOLT #5](05-onchain.md#penalty-transaction-weight-calculation).
+`max_accepted_htlcs` está limitado a 483 para garantizar que, incluso si ambas partes envían el número máximo de HTLC, el mensaje `commitment_signed`todavía estar por debajo del tamaño máximo de mensaje. También asegura que una sola transacción de penalización puede gastar toda la transacción de compromiso,según lo calculado en [BOLT #5](05-onchain.md#penalty-transaction-weight-calculation).
 
 Los valores de `cltv_expiry` iguales o superiores a 500000000 indicarían un tiempo en segundos, y el protocolo solo admite una caducidad en bloques.
 
-El nodo _responsable_ de pagar la tarifa de Bitcoin debe mantener una "fee spike buffer" en la parte superior de su reserva para acomodar un futuro aumento de tarifas. Sin este búfer, el nodo _responsable_ de pagar la tarifa de Bitcoin puede llegar a un estado en el que no puede enviar ni recibir ningún HTLC que no sea polvo mientras manteniendo su reserva de canal (debido al aumento de peso de la transacción de compromiso), lo que resulta en un canal degradado. Ver [#728](https://github.com/lightningnetwork/lightning-rfc/issues/728) para más detalles.
+El nodo _responsable_ de pagar la tarifa de Bitcoin debe mantener una `fee spike buffer` en la parte superior de su reserva para acomodar un futuro aumento de tarifas. Sin este búfer, el nodo _responsable_ de pagar la tarifa de Bitcoin puede llegar a un estado en el que no puede enviar ni recibir ningún HTLC que no sea polvo mientras manteniendo su reserva de canal (debido al aumento de peso de la transacción de compromiso), lo que resulta en un canal degradado. Ver [#728](https://github.com/lightningnetwork/lightning-rfc/issues/728) para más detalles.
 
 ### Eliminando un HTLC: `update_fulfill_htlc`, `update_fail_htlc`, y `update_fail_malformed_htlc`
 
