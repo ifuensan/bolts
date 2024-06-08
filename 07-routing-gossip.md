@@ -795,7 +795,7 @@ El `channel_update` más antiguo se usa para eliminar el canal, ya que ambos lad
 
 ## Recomendaciones para el enrutamiento
 
-Al calcular una ruta para un HTLC, se deben considerar tanto el `cltv_expiry_delta` como la tarifa: el `cltv_expiry_delta` contribuye al tiempo que los fondos no estarán disponibles en el caso de una falla en el peor de los casos. La relación entre estos dos atributos no está clara, ya que depende de la confiabilidad de los nodos involucrados.
+Al calcular una ruta para un HTLC, se deben considerar tanto el `cltv_expiry_delta` como la tarifa: el `cltv_expiry_delta` contribuye al tiempo que los fondos no estarán disponibles en el caso de un fallo, en el peor de los casos. La relación entre estos dos atributos no está clara, ya que depende de la confiabilidad de los nodos involucrados.
 
 Si una ruta se calcula simplemente enrutando al destinatario deseado y sumando los `cltv_expiry_delta`s, entonces es posible que los nodos intermedios adivinen su posición en la ruta. Conocer el CLTV del HTLC, la topología de red circundante y `cltv_expiry_delta`s le da al atacante una forma de adivinar el destinatario previsto. Por lo tanto, es muy recomendable agregar una compensación aleatoria al CLTV que recibirá el destinatario previsto, que golpea a todos los CLTV a lo largo de la ruta.
 
