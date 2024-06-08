@@ -848,7 +848,7 @@ La red verá ocho mensajes `channel_update`:
 1. C->B: `cltv_expiry_delta` = 30, `fee_base_msat` = 300, `fee_proportional_millionths` = 3000
 1. C->D: `cltv_expiry_delta` = 30, `fee_base_msat` = 300, `fee_proportional_millionths` = 3000
 
-**B->C.** Si B enviara 4,999,999 millisatoshi directamente a C, no se cobraría una tarifa ni agregaría su propio `cltv_expiry_delta`, por lo que usaría el `min_final_cltv_expiry_delta` solicitado por C de 9. Presumiblemente, también agregue una _ruta de sombra_ para dar un CLTV adicional de 42. Además, podría agregar deltas de CLTV adicionales en otros saltos, ya que estos valores representan un mínimo, pero elige no hacerlo aquí, en aras de la simplicidad:
+**B->C.** Si B enviara 4,999,999 millisatoshi directamente a C, no se cobraría una tarifa ni agregaría su propio `cltv_expiry_delta`, por lo que usaría el `min_final_cltv_expiry_delta` solicitado por C de 9. Presumiblemente, también agregue una _shadow route`_ para dar un CLTV adicional de 42. Además, podría agregar deltas de CLTV adicionales en otros saltos, ya que estos valores representan un mínimo, pero elige no hacerlo aquí, en aras de la simplicidad:
 
    * `amount_msat`: 4999999
    * `cltv_expiry`: current-block-height + 9 + 42
